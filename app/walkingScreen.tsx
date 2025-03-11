@@ -1,97 +1,36 @@
-import { useState, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  Animated,
-  TouchableWithoutFeedback,
-} from "react-native";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import { FontAwesome6 } from "@expo/vector-icons";
+import React from "react";
+import { View, StyleSheet, TouchableOpacity, Text, Dimensions } from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import { AntDesign } from "@expo/vector-icons"; // Import Vector Icon
 
-const WalkingScreen = () => {
-  const [target, setTarget] = useState<string>("Set target"); // Persistent selection
-  const [tempTarget, setTempTarget] = useState<string>(); // Temporary selection for dropdown
-  const [showSheet, setShowSheet] = useState<boolean>(false);
-  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+const { height } = Dimensions.get("window");
 
-  const targets = [
-    "Set target",
-    "Calories target",
-    "Steps target",
-    "Duration target",
-  ]; // Ensure "Set target" is first
-
-  const openSheet = () => {
-    setShowSheet(true);
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const closeSheet = () => {
-    Animated.timing(scaleAnim, {
-      toValue: 0.5,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => setShowSheet(false));
-  };
-
-  const handleSelectTarget = (selected: string) => {
-    setTarget(selected); // Set the persistent selection
-    setTempTarget(selected);
-    closeSheet();
-  };
-
+const walkingScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.selectedTargetText}>Target: {target}</Text>
+      {/* Map View */}
+      <MapView
+        style={styles.map}
+        initialRegion={{
+          latitude: 37.78825,
+          longitude: -122.4324,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+      >
+        <Marker
+          coordinate={{ latitude: 37.78825, longitude: -122.4324 }}
+          title="Current Location"
+          description="You are here"
+        />
+      </MapView>
 
-      <Modal transparent visible={showSheet} animationType="fade">
-        <TouchableWithoutFeedback onPress={closeSheet}>
-          <View style={styles.fullscreenContainer}>
-            <Animated.View
-              style={[
-                styles.modalContent,
-                { transform: [{ scale: scaleAnim }] },
-              ]}
-            >
-              {targets.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.option}
-                  onPress={() => handleSelectTarget(item)}
-                >
-                  <Text style={styles.optionText}>{item}</Text>
-                  {(tempTarget === item) && (
-                    <FontAwesome6
-                      name="check"
-                      size={20}
-                      color="green"
-                      style={styles.checkIcon}
-                    />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </Animated.View>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
-
-      {/* Fixed Bottom Sheet */}
-      <View style={styles.fixedBottomSheet}>
-        <TouchableOpacity style={styles.dropdownButton} onPress={openSheet}>
-          <Text style={styles.label}>{target}</Text>
-          <AntDesign
-            name="caretdown"
-            size={18}
-            color="black"
-            style={styles.icon}
-          />
+      {/* Bottom Sheet (Always Visible) */}
+      <View style={styles.bottomSheet}>
+        {/* Set Target Button */}
+        <TouchableOpacity style={styles.targetButton} onPress={() => console.log("Dropdown Pressed")}>
+          <Text style={styles.targetText}>Set Target</Text>
+          <AntDesign name="caretdown" size={24} color="black" />
         </TouchableOpacity>
       </View>
     </View>
@@ -101,66 +40,43 @@ const WalkingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "flex-end",
-    alignItems: "center",
   },
-  selectedTargetText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginTop: 40,
-    color: "#333",
+  map: {
+    width: "100%",
+    height: "70%", // Map takes 70% of the screen
   },
-  fullscreenContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    width: "50%",
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 20,
-    alignItems: "center",
-    elevation: 5,
-  },
-  fixedBottomSheet: {
-    height: "30%",
+  bottomSheet: {
+    width: "100%",
+    height: height * 0.3, // 30% of the screen height
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    padding: 20,
     alignItems: "center",
-    width: "100%",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
     position: "absolute",
     bottom: 0,
   },
-  dropdownButton: {
+  targetButton: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    marginTop: 40,
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 25,
   },
-  label: {
+  targetText: {
     fontSize: 18,
     fontWeight: "bold",
+    marginRight: 8,
   },
   icon: {
-    marginLeft: 5,
-  },
-  option: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 10,
-    width: "100%",
-  },
-  optionText: {
-    fontSize: 16,
-    flex: 1,
-  },
-  checkIcon: {
-    marginLeft: 10,
+    marginTop: 2, // Adjust icon alignment
   },
 });
 
-export default WalkingScreen;
+export default walkingScreen;

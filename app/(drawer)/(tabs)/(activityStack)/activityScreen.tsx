@@ -142,7 +142,9 @@ const ActivityScreen: React.FC = () => {
 
   // Refresh Button
   const [refreshCount, setRefreshCount] = useState<number>(); // Refresh button counter
-
+  // Actual meal plan
+  const [actualMeal, setActualMeal] = useState<string | null>(null);
+  const [foodInput, setFoodInput] = useState<string>("");
   // Food Suggestions
   const [selectedMeal, setSelectedMeal] = useState<string>("Breakfast");
   const totalCalories =
@@ -180,7 +182,10 @@ const ActivityScreen: React.FC = () => {
     useState(false);
   const [sys, setSys] = useState<number | null>(null);
   const [dia, setDia] = useState<number | null>(null);
-
+  const handleSubmit = () => {
+    console.log(`Meal: ${actualMeal}, Food: ${foodInput}`);
+    alert(`You entered: ${foodInput} for ${actualMeal}`);
+  };
   return (
     <View>
       <ScrollView>
@@ -368,6 +373,49 @@ const ActivityScreen: React.FC = () => {
               >
                 <Text style={styles.refreshText}>Search</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Actual Food */}
+            <View style={styles.actualFoodContainer}>
+              {/* Label */}
+              <Text style={styles.actualFoodLabel}>Enter actual food</Text>
+
+              {/* Dropdown Picker */}
+              <View style={styles.dropdownContainer}>
+                <Picker
+                  selectedValue={actualMeal}
+                  onValueChange={(itemValue) => setActualMeal(itemValue)}
+                  style={styles.actualFoodPicker}
+                >
+                  <Picker.Item label="Select Meal" value={null} />
+                  <Picker.Item label="Breakfast" value="Breakfast" />
+                  <Picker.Item label="Morning Snacks" value="Morning Snacks" />
+                  <Picker.Item label="Lunch" value="Lunch" />
+                  <Picker.Item label="Evening Snacks" value="Evening Snacks" />
+                  <Picker.Item label="Dinner" value="Dinner" />
+                </Picker>
+              </View>
+
+              {/* Input Field - Show only if a meal is selected */}
+              {actualMeal && actualMeal !== "Select Meal" && (
+                <TextInput
+                  style={styles.actualFoodInput}
+                  placeholder={`Enter food for ${actualMeal}`}
+                  value={foodInput}
+                  onChangeText={setFoodInput}
+                />
+              )}
+              <View style={styles.submitView}>
+              {/* Submit Button - Show only if meal is selected and input is provided */}
+              {actualMeal && foodInput.trim() !== "" && (
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={handleSubmit}
+                >
+                  <Text style={styles.submitButtonText}>Submit</Text>
+                </TouchableOpacity>
+              )}
+              </View>
             </View>
 
             {/* Food Suggestion  */}
@@ -590,8 +638,8 @@ const styles = StyleSheet.create({
 
   // Refresh
   refreshContainer: {
-    flex:1,
-    justifyContent:'center',
+    flex: 1,
+    justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
     marginRight: 20,
@@ -606,6 +654,51 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "normal",
     fontSize: 16,
+  },
+  // Acutal Food
+  actualFoodContainer: {
+    padding: 20,
+  },
+  actualFoodLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  actualFoodPicker: {
+    height: 50,
+    width: "100%",
+  },
+  actualFoodInput: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 10,
+  },
+  submitView:{
+    flex:1,
+    justifyContent:'center',
+    alignItems:'center',
+  },
+  submitButton: {
+    marginTop: 15,
+    backgroundColor: "#00318D",
+    paddingVertical: 5,
+    paddingHorizontal: 40,
+    borderRadius: 10,
+    marginRight:18,
+  },
+  submitButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "normal",
+    fontSize: 16,
+    textAlign:"center",
   },
 
   // Food Suggestion
