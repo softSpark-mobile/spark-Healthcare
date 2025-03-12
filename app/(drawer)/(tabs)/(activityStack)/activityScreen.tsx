@@ -20,6 +20,7 @@ import isoWeek from "dayjs/plugin/isoWeek";
 import { ProgressBar } from "react-native-paper"; // Ensure you have react-native-paper installed
 
 import Entypo from "@expo/vector-icons/Entypo";
+import { AntDesign } from "@expo/vector-icons";
 
 dayjs.extend(isoWeek);
 
@@ -143,6 +144,7 @@ const ActivityScreen: React.FC = () => {
   // Refresh Button
   const [refreshCount, setRefreshCount] = useState<number>(); // Refresh button counter
   // Actual meal plan
+  const [showDropdown, setShowDropdown] = useState<boolean>(false);
   const [actualMeal, setActualMeal] = useState<string | null>(null);
   const [foodInput, setFoodInput] = useState<string>("");
   // Food Suggestions
@@ -184,7 +186,7 @@ const ActivityScreen: React.FC = () => {
   const [dia, setDia] = useState<number | null>(null);
   const handleSubmit = () => {
     console.log(`Meal: ${actualMeal}, Food: ${foodInput}`);
-    alert(`You entered: ${foodInput} for ${actualMeal}`);
+    // Handle form submission logic here
   };
   return (
     <View>
@@ -377,36 +379,57 @@ const ActivityScreen: React.FC = () => {
 
             {/* Actual Food */}
             <View style={styles.actualFoodContainer}>
-              {/* Label */}
-              <Text style={styles.actualFoodLabel}>Enter actual food</Text>
+              {/* Subview: Header Section */}
+              <View style={styles.headerContainer}>
+                {/* Left Side - Actual Food Label */}
+                <Text style={styles.actualFoodLabel}>Food In-taken:</Text>
 
-              {/* Dropdown Picker */}
-              <View style={styles.dropdownContainer}>
-                <Picker
-                  selectedValue={actualMeal}
-                  onValueChange={(itemValue) => setActualMeal(itemValue)}
-                  style={styles.actualFoodPicker}
+                {/* Right Side - Plus Icon */}
+                <TouchableOpacity
+                  onPress={() => setShowDropdown(!showDropdown)}
                 >
-                  <Picker.Item label="Select Meal" value={null} />
-                  <Picker.Item label="Breakfast" value="Breakfast" />
-                  <Picker.Item label="Morning Snacks" value="Morning Snacks" />
-                  <Picker.Item label="Lunch" value="Lunch" />
-                  <Picker.Item label="Evening Snacks" value="Evening Snacks" />
-                  <Picker.Item label="Dinner" value="Dinner" />
-                </Picker>
+                  <AntDesign name="pluscircle" size={24} color="black" />
+                </TouchableOpacity>
               </View>
 
-              {/* Input Field - Show only if a meal is selected */}
+              {/* Show Dropdown when Plus Icon is clicked */}
+              {showDropdown && (
+                <View style={styles.dropdownWrapper}>
+                  <Picker
+                    selectedValue={actualMeal}
+                    onValueChange={(itemValue: string) =>
+                      setActualMeal(itemValue)
+                    }
+                    style={styles.actualFoodPicker}
+                  >
+                    <Picker.Item label="Select Meal" value={null} />
+                    <Picker.Item label="Breakfast" value="Breakfast" />
+                    <Picker.Item
+                      label="Morning Snacks"
+                      value="Morning Snacks"
+                    />
+                    <Picker.Item label="Lunch" value="Lunch" />
+                    <Picker.Item
+                      label="Evening Snacks"
+                      value="Evening Snacks"
+                    />
+                    <Picker.Item label="Dinner" value="Dinner" />
+                  </Picker>
+                </View>
+              )}
+
+              {/* Show Input Field when a meal is selected */}
               {actualMeal && actualMeal !== "Select Meal" && (
                 <TextInput
                   style={styles.actualFoodInput}
                   placeholder={`Enter food for ${actualMeal}`}
                   value={foodInput}
-                  onChangeText={setFoodInput}
+                  onChangeText={(text: string) => setFoodInput(text)}
                 />
               )}
-              <View style={styles.submitView}>
-              {/* Submit Button - Show only if meal is selected and input is provided */}
+
+              {/* Show Submit Button only when input is provided */}
+              <View style={styles.submitContainer}>
               {actualMeal && foodInput.trim() !== "" && (
                 <TouchableOpacity
                   style={styles.submitButton}
@@ -416,6 +439,7 @@ const ActivityScreen: React.FC = () => {
                 </TouchableOpacity>
               )}
               </View>
+              
             </View>
 
             {/* Food Suggestion  */}
@@ -657,18 +681,24 @@ const styles = StyleSheet.create({
   },
   // Acutal Food
   actualFoodContainer: {
-    padding: 20,
+    padding: 10,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 10,
   },
   actualFoodLabel: {
     fontSize: 16,
     fontWeight: "bold",
-    marginBottom: 8,
   },
-  dropdownContainer: {
+  dropdownWrapper: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
-    marginBottom: 10,
+    borderRadius: 10, // Rounded border
+    overflow: "hidden", // Ensures content stays within border radius
+    marginTop: 10,
   },
   actualFoodPicker: {
     height: 50,
@@ -677,30 +707,29 @@ const styles = StyleSheet.create({
   actualFoodInput: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 10,
     marginTop: 10,
+    width: "100%",
   },
-  submitView:{
-    flex:1,
-    justifyContent:'center',
-    alignItems:'center',
+  submitContainer:{
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+    marginRight: 20,
   },
   submitButton: {
-    marginTop: 15,
     backgroundColor: "#00318D",
     paddingVertical: 5,
     paddingHorizontal: 40,
     borderRadius: 10,
-    marginRight:18,
   },
   submitButtonText: {
     color: "#FFFFFF",
     fontWeight: "normal",
     fontSize: 16,
-    textAlign:"center",
   },
-
   // Food Suggestion
   foodSuggestcontainer: {
     flex: 1,
