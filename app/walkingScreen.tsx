@@ -10,61 +10,76 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { AntDesign, Feather } from "@expo/vector-icons";
+import DropDownPicker from "react-native-dropdown-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 const { height, width } = Dimensions.get("window");
 
-const WalkingScreen = () => {
-  const bottomSheetRef = useRef(null);
-  const calorieSheetRef = useRef(null);
-  const stepSheetRef = useRef(null);
-  const durationSheetRef = useRef(null);
+const WalkingScreen: React.FC = () => {
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const calorieSheetRef = useRef<BottomSheet>(null);
+  const stepSheetRef = useRef<BottomSheet>(null);
+  const durationSheetRef = useRef<BottomSheet>(null);
 
-  const snapPoints = useMemo(() => ["30%"], []); // Fixed Height
-  const [isSetTargetVisible, setSetTargetVisible] = useState(true); // Default Visible
-  const [isCalorieSheetVisible, setCalorieSheetVisible] = useState(false);
-  const [isStepSheetVisible, setStepSheetVisible] = useState(false);
-  const [isDurationSheetVisible, setDurationSheetVisible] = useState(false);
-  const [isDropdownVisible, setDropdownVisible] = useState(false);
-  const [selectedOption, setSelectedOption] = useState("");
+  const snapPoints = useMemo(() => ["45%"], []);
+  const [isSetTargetVisible, setSetTargetVisible] = useState<boolean>(true);
+  const [isCalorieSheetVisible, setCalorieSheetVisible] = useState<boolean>(false);
+  const [isStepSheetVisible, setStepSheetVisible] = useState<boolean>(false);
+  const [isDurationSheetVisible, setDurationSheetVisible] = useState<boolean>(false);
+  const [isDropdownVisible, setDropdownVisible] = useState<boolean>(false);
+  const [selectedOption, setSelectedOption] = useState<string>("");
 
-  // Calorie
-  const [calorieTarget, setCalorieTarget] = useState(""); // Calorie Input Value
-  const [calorieProgress, setCalorieProgress] = useState(0); // Progress Bar Value
-  const [isStarted, setIsStarted] = useState(false); // Track if the calorie target is started
-  const [isPaused, setIsPaused] = useState(false); // Track if the calorie target is paused
-  const [isStopped, setIsStopped] = useState(false); // Track if the calorie target is stopped
+  // Calorie Target
+  const [calorieTarget, setCalorieTarget] = useState<string>("");
+  const [calorieProgress, setCalorieProgress] = useState<number>(0);
+  const [isStarted, setIsStarted] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isStopped, setIsStopped] = useState<boolean>(false);
+  const [calorieTimer, setCalorieTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Step
-  const [stepDropDownVisible, setStepDropDownVisible] = useState(false);
-  const [selectedUnit, setSelectedUnit] = useState("Km");
-  const [stepTarget, setStepTarget] = useState(""); // Step Input Value
-  const [stepProgress, setStepProgress] = useState(0); // Progress Bar Value
-  const [isStepStarted, setIsStepStarted] = useState(false); // Track if the step target is started
-  const [isStepPaused, setIsStepPaused] = useState(false); // Track if the step target is paused
-  const [isStepStopped, setIsStepStopped] = useState(false); // Track if the step target is stopped
+  // Step Target
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [stepTarget, setStepTarget] = useState<string>("");
+  const [stepProgress, setStepProgress] = useState<number>(0);
+  const [isStepStarted, setIsStepStarted] = useState<boolean>(false);
+  const [isStepPaused, setIsStepPaused] = useState<boolean>(false);
+  const [isStepStopped, setIsStepStopped] = useState<boolean>(false);
+  const [stepTimer, setStepTimer] = useState<NodeJS.Timeout | null>(null);
+  const [open, setOpen] = useState<boolean>(false);
+  const [value, setValue] = useState<string | null>(null);
+  const [items, setItems] = useState<{ label: string; value: string }[]>([
+    { label: "Km", value: "Km" },
+    { label: "M", value: "M" },
+  ]);
 
-  // Timer for progress simulation
-  const [timer, setTimer] = useState(null);
-  const [stepTimer, setStepTimer] = useState(null);
+  // Duration Target
+  const [hours, setHours] = useState<string>("00");
+  const [minutes, setMinutes] = useState<string>("00");
+  const [seconds, setSeconds] = useState<string>("00");
+  const [durationProgress, setDurationProgress] = useState<number>(0);
+  const [isDurationStarted, setIsDurationStarted] = useState<boolean>(false);
+  const [isDurationPaused, setIsDurationPaused] = useState<boolean>(false);
+  const [isDurationStopped, setIsDurationStopped] = useState<boolean>(false);
+  const [durationTimer, setDurationTimer] = useState<NodeJS.Timeout | null>(null);
+  const [showPicker, setShowPicker] = useState<boolean>(false);
+  const [pickerMode, setPickerMode] = useState<"hour" | "minute" | "second" | null>(null);
 
-  const dropdownOptions = [
+  const dropdownOptions: string[] = [
     "Set Target",
     "Calorie Target",
     "Step Target",
     "Duration Target",
   ];
 
-  const handleDropdownSelect = (option) => {
+  const handleDropdownSelect = (option: string) => {
     setSelectedOption(option);
     setDropdownVisible(false);
 
-    // Close all sheets first
     setSetTargetVisible(false);
     setCalorieSheetVisible(false);
     setStepSheetVisible(false);
     setDurationSheetVisible(false);
 
-    // Open only the selected sheet
     if (option === "Set Target") {
       setSetTargetVisible(true);
     } else if (option === "Calorie Target") {
@@ -76,111 +91,177 @@ const WalkingScreen = () => {
     }
   };
 
-  const handleStart = () => {
-    setIsStarted(true); // Start the calorie target
-    setIsPaused(false); // Ensure it's not paused
-    setIsStopped(false); // Ensure it's not stopped
+  // Calorie Target Functions
+  const handleCalorieStart = () => {
+    if (!calorieTarget) return;
+    setIsStarted(true);
+    setIsPaused(false);
+    setIsStopped(false);
 
-    // Start the progress simulation
     const interval = setInterval(() => {
       setCalorieProgress((prevProgress) => {
         if (prevProgress >= 100) {
-          clearInterval(interval); // Stop the timer when progress reaches 100%
+          clearInterval(interval);
           return 100;
         }
-        return prevProgress + 1; // Increment progress by 1% every 100ms
+        return prevProgress + 1;
       });
-    }, 100); // Update progress every 100ms
+    }, 100);
 
-    setTimer(interval); // Save the timer ID
+    setCalorieTimer(interval);
   };
 
-  const handlePause = () => {
-    setIsPaused(true); // Pause the calorie target
-    clearInterval(timer); // Stop the timer
+  const handleCaloriePause = () => {
+    setIsPaused(true);
+    if (calorieTimer) clearInterval(calorieTimer);
   };
 
-  const handleResume = () => {
-    setIsPaused(false); // Resume the calorie target
+  const handleCalorieResume = () => {
+    setIsPaused(false);
 
-    // Restart the progress simulation
     const interval = setInterval(() => {
       setCalorieProgress((prevProgress) => {
         if (prevProgress >= 100) {
-          clearInterval(interval); // Stop the timer when progress reaches 100%
+          clearInterval(interval);
           return 100;
         }
-        return prevProgress + 1; // Increment progress by 1% every 100ms
+        return prevProgress + 1;
       });
-    }, 100); // Update progress every 100ms
+    }, 100);
 
-    setTimer(interval); // Save the timer ID
+    setCalorieTimer(interval);
   };
 
-  const handleStop = () => {
-    setIsStopped(true); // Stop the calorie target
-    setIsStarted(false); // Reset started state
-    setIsPaused(false); // Reset paused state
-    clearInterval(timer); // Stop the timer
-    setCalorieProgress(0); // Reset progress to 0%
+  const handleCalorieStop = () => {
+    setIsStopped(true);
+    setIsStarted(false);
+    setIsPaused(false);
+    if (calorieTimer) clearInterval(calorieTimer);
+    setCalorieProgress(0);
   };
 
+  // Step Target Functions
   const handleStepStart = () => {
-    setIsStepStarted(true); // Start the step target
-    setIsStepPaused(false); // Ensure it's not paused
-    setIsStepStopped(false); // Ensure it's not stopped
+    if (!stepTarget) return;
+    setIsStepStarted(true);
+    setIsStepPaused(false);
+    setIsStepStopped(false);
 
-    // Start the progress simulation
     const interval = setInterval(() => {
       setStepProgress((prevProgress) => {
         if (prevProgress >= 100) {
-          clearInterval(interval); // Stop the timer when progress reaches 100%
+          clearInterval(interval);
           return 100;
         }
-        return prevProgress + 1; // Increment progress by 1% every 100ms
+        return prevProgress + 1;
       });
-    }, 100); // Update progress every 100ms
+    }, 100);
 
-    setStepTimer(interval); // Save the timer ID
+    setStepTimer(interval);
   };
 
   const handleStepPause = () => {
-    setIsStepPaused(true); // Pause the step target
-    clearInterval(stepTimer); // Stop the timer
+    setIsStepPaused(true);
+    if (stepTimer) clearInterval(stepTimer);
   };
 
   const handleStepResume = () => {
-    setIsStepPaused(false); // Resume the step target
+    setIsStepPaused(false);
 
-    // Restart the progress simulation
     const interval = setInterval(() => {
       setStepProgress((prevProgress) => {
         if (prevProgress >= 100) {
-          clearInterval(interval); // Stop the timer when progress reaches 100%
+          clearInterval(interval);
           return 100;
         }
-        return prevProgress + 1; // Increment progress by 1% every 100ms
+        return prevProgress + 1;
       });
-    }, 100); // Update progress every 100ms
+    }, 100);
 
-    setStepTimer(interval); // Save the timer ID
+    setStepTimer(interval);
   };
 
   const handleStepStop = () => {
-    setIsStepStopped(true); // Stop the step target
-    setIsStepStarted(false); // Reset started state
-    setIsStepPaused(false); // Reset paused state
-    clearInterval(stepTimer); // Stop the timer
-    setStepProgress(0); // Reset progress to 0%
+    setIsStepStopped(true);
+    setIsStepStarted(false);
+    setIsStepPaused(false);
+    if (stepTimer) clearInterval(stepTimer);
+    setStepProgress(0);
   };
 
-  // Cleanup the timers when the component unmounts
+  // Duration Target Functions
+  const handleDurationStart = () => {
+    setIsDurationStarted(true);
+    setIsDurationPaused(false);
+    setIsDurationStopped(false);
+
+    const interval = setInterval(() => {
+      setDurationProgress((prevProgress) => {
+        if (prevProgress >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prevProgress + 1;
+      });
+    }, 100);
+
+    setDurationTimer(interval);
+  };
+
+  const handleDurationPause = () => {
+    setIsDurationPaused(true);
+    if (durationTimer) clearInterval(durationTimer);
+  };
+
+  const handleDurationResume = () => {
+    setIsDurationPaused(false);
+
+    const interval = setInterval(() => {
+      setDurationProgress((prevProgress) => {
+        if (prevProgress >= 100) {
+          clearInterval(interval);
+          return 100;
+        }
+        return prevProgress + 1;
+      });
+    }, 100);
+
+    setDurationTimer(interval);
+  };
+
+  const handleDurationStop = () => {
+    setIsDurationStopped(true);
+    setIsDurationStarted(false);
+    setIsDurationPaused(false);
+    if (durationTimer) clearInterval(durationTimer);
+    setDurationProgress(0);
+  };
+
+  const onChange = (event: any, selectedDate?: Date) => {
+    if (selectedDate) {
+      const hours = selectedDate.getHours().toString().padStart(2, "0");
+      const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
+      const seconds = selectedDate.getSeconds().toString().padStart(2, "0");
+
+      if (pickerMode === "hour") {
+        setHours(hours);
+      } else if (pickerMode === "minute") {
+        setMinutes(minutes);
+      } else if (pickerMode === "second") {
+        setSeconds(seconds);
+      }
+    }
+    setShowPicker(false);
+    setPickerMode(null);
+  };
+
   useEffect(() => {
     return () => {
-      if (timer) clearInterval(timer);
+      if (calorieTimer) clearInterval(calorieTimer);
       if (stepTimer) clearInterval(stepTimer);
+      if (durationTimer) clearInterval(durationTimer);
     };
-  }, [timer, stepTimer]);
+  }, [calorieTimer, stepTimer, durationTimer]);
 
   return (
     <View style={styles.container}>
@@ -226,11 +307,12 @@ const WalkingScreen = () => {
           snapPoints={snapPoints}
           enablePanDownToClose={false}
           enableContentPanningGesture={false}
+          backgroundStyle={styles.bottomSheetBackground}
         >
-          <BottomSheetView style={styles.bottomSheetContent}>
+          <BottomSheetView style={styles.bottomSheetView}>
             <TouchableOpacity
               style={styles.targetButton}
-              onPress={() => setDropdownVisible(!isDropdownVisible)} // Toggle dropdown visibility
+              onPress={() => setDropdownVisible(!isDropdownVisible)}
             >
               <Text style={styles.targetText}>Set Target</Text>
               <AntDesign name="caretdown" size={20} color="black" />
@@ -247,8 +329,9 @@ const WalkingScreen = () => {
           snapPoints={snapPoints}
           enablePanDownToClose={false}
           enableContentPanningGesture={false}
+          backgroundStyle={styles.bottomSheetBackground}
         >
-          <BottomSheetView style={styles.bottomSheetContent}>
+          <BottomSheetView style={styles.bottomSheetView}>
             <TouchableOpacity
               style={styles.calorieTargetButton}
               onPress={() => setDropdownVisible(true)}
@@ -264,12 +347,10 @@ const WalkingScreen = () => {
               placeholderTextColor="#999"
               keyboardType="numeric"
               value={calorieTarget}
-              onChangeText={(text) => {
-                setCalorieTarget(text);
-              }}
+              onChangeText={(text) => setCalorieTarget(text)}
             />
 
-            {/* Horizontal Progress Bar */}
+            {/* Progress Bar */}
             <View style={styles.progressBar}>
               <View
                 style={[styles.progressFill, { width: `${calorieProgress}%` }]}
@@ -280,36 +361,31 @@ const WalkingScreen = () => {
             {!isStarted ? (
               <TouchableOpacity
                 style={styles.startButton}
-                onPress={handleStart}
+                onPress={handleCalorieStart}
               >
                 <Text style={styles.startButtonText}>Start</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.controlButtonsContainer}>
-                {/* Resume Button (Visible only when paused) */}
                 {isPaused && (
                   <TouchableOpacity
                     style={styles.controlButton}
-                    onPress={handleResume}
+                    onPress={handleCalorieResume}
                   >
                     <Feather name="play" size={24} color="#3ECD7E" />
                   </TouchableOpacity>
                 )}
-
-                {/* Pause Button (Visible only when not paused) */}
                 {!isPaused && (
                   <TouchableOpacity
                     style={styles.controlButton}
-                    onPress={handlePause}
+                    onPress={handleCaloriePause}
                   >
                     <Feather name="pause" size={24} color="#FFA500" />
                   </TouchableOpacity>
                 )}
-
-                {/* Stop Button (Always visible when started) */}
                 <TouchableOpacity
                   style={styles.controlButton}
-                  onPress={handleStop}
+                  onPress={handleCalorieStop}
                 >
                   <Feather name="stop-circle" size={24} color="#FF3B30" />
                 </TouchableOpacity>
@@ -327,64 +403,53 @@ const WalkingScreen = () => {
           snapPoints={snapPoints}
           enablePanDownToClose={false}
           enableContentPanningGesture={false}
+          backgroundStyle={styles.bottomSheetBackground}
         >
-          <BottomSheetView style={styles.bottomSheetContent}>
+          <BottomSheetView style={styles.bottomSheetView}>
             <TouchableOpacity
               style={styles.stepTargetButton}
               onPress={() => setDropdownVisible(true)}
             >
               <Text style={styles.stepTargetText}>Step Target</Text>
-              <AntDesign name="caretdown" size={20} color="black" />
+              <AntDesign name="caretdown" size={14} color="black" />
             </TouchableOpacity>
 
-            {/* Step Unit Dropdown */}
-            <TouchableOpacity
-              style={styles.stepUnitDropdown}
-              onPress={() => setStepDropDownVisible(!stepDropDownVisible)}
-            >
-              <Text style={styles.stepUnitText}>{selectedUnit}</Text>
-              <AntDesign name="caretdown" size={20} color="black" />
-            </TouchableOpacity>
+            {/* DropDownPicker for Unit Selection */}
+            <View style={styles.pickerContainer}>
+              <DropDownPicker
+                open={open}
+                value={value}
+                items={items}
+                setOpen={setOpen}
+                setValue={setValue}
+                setItems={setItems}
+                placeholder="Select the target distance(Km/M)"
+                style={styles.picker}
+                dropDownContainerStyle={styles.dropDownContainer}
+                onChangeValue={(itemValue) => setSelectedUnit(itemValue)}
+              />
+            </View>
 
-            {stepDropDownVisible && (
-              <View style={styles.stepUnitOptions}>
-                <TouchableOpacity
-                  style={styles.stepUnitOption}
-                  onPress={() => {
-                    setSelectedUnit("Km");
-                    setStepDropDownVisible(false);
-                  }}
-                >
-                  <Text style={styles.stepUnitOptionText}>Km</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.stepUnitOption}
-                  onPress={() => {
-                    setSelectedUnit("M");
-                    setStepDropDownVisible(false);
-                  }}
-                >
-                  <Text style={styles.stepUnitOptionText}>M</Text>
-                </TouchableOpacity>
-              </View>
+            {/* Input Field with Placeholder Based on Selected Unit */}
+            {value && (
+              <TextInput
+                style={styles.stepInput}
+                placeholder={
+                  value === "Km"
+                    ? "Enter Your distance in Kilo Meter "
+                    : "Enter Your distance in Meter"
+                }
+                placeholderTextColor="#999"
+                keyboardType="numeric"
+                value={stepTarget}
+                onChangeText={(text) => setStepTarget(text)}
+              />
             )}
 
-            {/* Step Input Field */}
-            <TextInput
-              style={styles.input}
-              placeholder={`Enter the target steps (${selectedUnit})`}
-              placeholderTextColor="#999"
-              keyboardType="numeric"
-              value={stepTarget}
-              onChangeText={(text) => {
-                setStepTarget(text);
-              }}
-            />
-
-            {/* Start Button */}
-            {!isStepStarted && (
+            {/* Start Button with 200px Width and Centered */}
+            {value && !isStepStarted && (
               <TouchableOpacity
-                style={styles.startButton}
+                style={styles.stepStartButton}
                 onPress={handleStepStart}
               >
                 <Text style={styles.startButtonText}>Start</Text>
@@ -392,16 +457,17 @@ const WalkingScreen = () => {
             )}
 
             {/* Progress Bar */}
-            <View style={styles.progressBar}>
-              <View
-                style={[styles.progressFill, { width: `${stepProgress}%` }]}
-              />
-            </View>
+            {isStepStarted && (
+              <View style={styles.progressBar}>
+                <View
+                  style={[styles.progressFill, { width: `${stepProgress}%` }]}
+                />
+              </View>
+            )}
 
-            {/* Resume / Pause / Stop Buttons */}
+            {/* Pause / Resume / Stop Buttons */}
             {isStepStarted && (
               <View style={styles.controlButtonsContainer}>
-                {/* Resume Button (Visible only when paused) */}
                 {isStepPaused && (
                   <TouchableOpacity
                     style={styles.controlButton}
@@ -410,8 +476,6 @@ const WalkingScreen = () => {
                     <Feather name="play" size={24} color="#3ECD7E" />
                   </TouchableOpacity>
                 )}
-
-                {/* Pause Button (Visible only when not paused) */}
                 {!isStepPaused && (
                   <TouchableOpacity
                     style={styles.controlButton}
@@ -420,8 +484,6 @@ const WalkingScreen = () => {
                     <Feather name="pause" size={24} color="#FFA500" />
                   </TouchableOpacity>
                 )}
-
-                {/* Stop Button (Always visible when started) */}
                 <TouchableOpacity
                   style={styles.controlButton}
                   onPress={handleStepStop}
@@ -442,8 +504,9 @@ const WalkingScreen = () => {
           snapPoints={snapPoints}
           enablePanDownToClose={false}
           enableContentPanningGesture={false}
+          backgroundStyle={styles.bottomSheetBackground}
         >
-          <BottomSheetView style={styles.bottomSheetContent}>
+          <BottomSheetView style={styles.bottomSheetView}>
             <TouchableOpacity
               style={styles.durationTargetButton}
               onPress={() => setDropdownVisible(true)}
@@ -452,7 +515,99 @@ const WalkingScreen = () => {
               <AntDesign name="caretdown" size={20} color="black" />
             </TouchableOpacity>
 
-            {/* Add Duration Target related UI components here */}
+            {/* Time Selection */}
+            <View style={styles.timeSelectionContainer}>
+              <View style={styles.timePickerGroup}>
+                <Text style={styles.timePickerLabel}>Hours</Text>
+                <TouchableOpacity
+                  style={styles.timePickerButton}
+                  onPress={() => {
+                    setPickerMode("hour");
+                    setShowPicker(true);
+                  }}
+                >
+                  <Text style={styles.timePickerButtonText}>{hours}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.timePickerGroup}>
+                <Text style={styles.timePickerLabel}>Minutes</Text>
+                <TouchableOpacity
+                  style={styles.timePickerButton}
+                  onPress={() => {
+                    setPickerMode("minute");
+                    setShowPicker(true);
+                  }}
+                >
+                  <Text style={styles.timePickerButtonText}>{minutes}</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.timePickerGroup}>
+                <Text style={styles.timePickerLabel}>Seconds</Text>
+                <TouchableOpacity
+                  style={styles.timePickerButton}
+                  onPress={() => {
+                    setPickerMode("second");
+                    setShowPicker(true);
+                  }}
+                >
+                  <Text style={styles.timePickerButtonText}>{seconds}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {showPicker && (
+              <DateTimePicker
+                value={new Date()}
+                mode="time"
+                is24Hour={true}
+                display="spinner"
+                onChange={onChange}
+              />
+            )}
+
+            {/* Progress Bar */}
+            <View style={styles.progressBar}>
+              <View
+                style={[styles.progressFill, { width: `${durationProgress}%` }]}
+              />
+            </View>
+
+            {/* Start / Resume / Pause / Stop Buttons */}
+            {!isDurationStarted ? (
+              <TouchableOpacity
+                style={styles.startButton}
+                onPress={handleDurationStart}
+              >
+                <Text style={styles.startButtonText}>Start</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.controlButtonsContainer}>
+                {isDurationPaused && (
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={handleDurationResume}
+                  >
+                    <Feather name="play" size={24} color="#3ECD7E" />
+                  </TouchableOpacity>
+                )}
+                {!isDurationPaused && (
+                  <TouchableOpacity
+                    style={styles.controlButton}
+                    onPress={handleDurationPause}
+                  >
+                    <Feather name="pause" size={24} color="#FFA500" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.controlButton}
+                  onPress={handleDurationStop}
+                >
+                  <Feather name="stop-circle" size={24} color="#FF3B30" />
+                </TouchableOpacity>
+              </View>
+            )}
           </BottomSheetView>
         </BottomSheet>
       )}
@@ -464,30 +619,33 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { width: "100%", height: "100%" },
 
-  bottomSheetContent: {
-    flex: 1,
-    alignItems: "center",
-    backgroundColor: "white",
+  // BottomSheet Background Style
+  bottomSheetBackground: {
+    backgroundColor: "#FFF",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    overflow: "hidden",
   },
 
+  // BottomSheetView Style
+  bottomSheetView: {
+    flex: 1,
+    alignItems: "center",
+    padding: 20,
+  },
+
+  // Target Button
   targetButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 12,
     borderRadius: 25,
-    marginBottom: 20,
+    marginBottom: 10,
   },
+  targetText: { fontSize: 20, marginRight: 8, color: "#000" },
 
-  targetText: { fontSize: 18, marginRight: 8, color: "#000" },
+  // Calorie Target Button
   calorieTargetButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 12,
     borderRadius: 25,
     marginBottom: 10,
   },
@@ -496,24 +654,35 @@ const styles = StyleSheet.create({
     marginRight: 8,
     color: "#000",
   },
+
+  // Step Target Button
   stepTargetButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 12,
     borderRadius: 25,
     marginBottom: 10,
   },
   stepTargetText: {
-    fontSize: 18,
+    fontSize: 20,
     marginRight: 8,
     color: "#000",
   },
+
+  // Step Start Button
+  stepStartButton: {
+    backgroundColor: "#3ECD7E",
+    padding: 15,
+    borderRadius: 10,
+    width: 200,
+    alignItems: "center",
+    marginBottom: 20,
+    alignSelf: "center",
+  },
+
+  // Duration Target Button
   durationTargetButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    padding: 12,
     borderRadius: 25,
     marginBottom: 10,
   },
@@ -522,46 +691,89 @@ const styles = StyleSheet.create({
     marginRight: 8,
     color: "#000",
   },
-  input: {
-    width: "70%",
-    height: 30,
+
+  // Picker Container
+  pickerContainer: {
+    width: "80%",
+    marginBottom: 20,
+  },
+  pickerLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 5,
+  },
+  picker: {
+    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  dropDownContainer: {
+    backgroundColor: "#f0f0f0",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 10,
-    paddingHorizontal: 15,
-    fontSize: 16,
+  },
+
+  // Input Field
+  input: {
+    width: "80%",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    fontSize: 14,
     color: "#333",
-    marginBottom: 15,
+    marginBottom: 20,
     textAlign: "center",
   },
+  stepInput: {
+    width: "80%",
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 10,
+    fontSize: 14,
+    color: "#333",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+
+  // Progress Bar
   progressBar: {
     width: "80%",
     height: 8,
     backgroundColor: "#e0e0e0",
     borderRadius: 10,
     overflow: "hidden",
+    marginBottom: 20,
   },
   progressFill: {
     height: "100%",
     backgroundColor: "#3ECD7E",
   },
+
+  // Start Button
   startButton: {
     backgroundColor: "#3ECD7E",
-    padding: 3,
+    padding: 15,
     borderRadius: 10,
-    width: "30%",
+    width: 200,
     alignItems: "center",
-    marginTop: 5,
+    marginBottom: 20,
+    alignSelf: "center",
   },
   startButtonText: {
     color: "black",
     fontSize: 18,
   },
+
+  // Control Buttons
   controlButtonsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
     width: "80%",
-    marginTop: 20,
+    marginTop: 10,
   },
   controlButton: {
     padding: 10,
@@ -570,6 +782,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
+  // Dropdown
   dropdown: {
     position: "absolute",
     top: 50,
@@ -592,41 +806,40 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   dropdownText: { fontSize: 16 },
-  stepUnitDropdown: {
+
+  // Time Selection Container
+  timeSelectionContainer: {
     flexDirection: "row",
+    justifyContent: "space-around",
+    width: "100%",
+    marginBottom: 20,
+  },
+
+  // Time Picker Group
+  timePickerGroup: {
     alignItems: "center",
-    backgroundColor: "#f0f0f0",
+  },
+
+  // Time Picker Label
+  timePickerLabel: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 5,
+  },
+
+  // Time Picker Button
+  timePickerButton: {
+    width: 80,
     padding: 12,
-    borderRadius: 25,
-    marginBottom: 10,
-  },
-  stepUnitText: {
-    fontSize: 18,
-    marginRight: 8,
-    color: "#000",
-  },
-  stepUnitOptions: {
-    position: "absolute",
-    top: 50,
-    left: width * 0.1,
-    width: width * 0.8,
-    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 10,
-    elevation: 5,
-    zIndex: 1000,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    alignItems: "center",
   },
-  stepUnitOption: {
-    padding: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
+  timePickerButtonText: {
+    fontSize: 18,
+    color: "#333",
   },
-  stepUnitOptionText: { fontSize: 16 },
 });
 
 export default WalkingScreen;
