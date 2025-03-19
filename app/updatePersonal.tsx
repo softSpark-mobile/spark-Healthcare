@@ -25,6 +25,7 @@ import CountryPicker, {
   CountryCode,
 } from "react-native-country-picker-modal";
 import PhoneInput from "react-native-phone-number-input";
+import Loader from "@/components/Loader";
 
 // Suppress unnecessary warnings
 LogBox.ignoreLogs([
@@ -35,6 +36,8 @@ export default function updatePersonal(): JSX.Element {
   const dispatch: AppDispatch = useDispatch();
 //   const userData = useSelector((state) => state.auth);
 //   console.log(userData, "userVlauess");
+//  Loader state
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [fullName, setFullName] = useState<string>("");
   const [age, setAge] = useState<string>("");
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
@@ -144,6 +147,9 @@ export default function updatePersonal(): JSX.Element {
   console.log(selectedFile, "fileVluesss");
   return (
     <View style={styles.container}>
+      {isLoading ? (
+        <Loader /> // Show loader when isLoading is true
+      ) : (
       <ScrollView>
         <Text style={styles.title}>Personal / General</Text>
 
@@ -333,6 +339,7 @@ export default function updatePersonal(): JSX.Element {
           </TouchableOpacity>
         </View>
       </ScrollView>
+        )}
     </View>
   );
 }

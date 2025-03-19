@@ -20,7 +20,7 @@ interface SignUpScreenProps {
 }
 
 export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
-  const dispatch: AppDispatch = useDispatch();
+  const dispatch = useDispatch();
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -31,17 +31,70 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
   const [isChecked, setIsChecked] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Error states
+  const [firstNameError, setFirstNameError] = useState<string>("");
+  const [lastNameError, setLastNameError] = useState<string>("");
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string>("");
+  const [termsError, setTermsError] = useState<string>("");
+
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSignUp = async () => {
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      alert("Please fill in all fields");
-      return;
+    // Reset all error messages
+    setFirstNameError("");
+    setLastNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
+    setTermsError("");
+
+    let isValid = true;
+
+    if (!firstName) {
+      setFirstNameError("First name is required.");
+      isValid = false;
     }
-    if (password !== confirmPassword) {
-      alert("Passwords do not match");
-      return;
+
+    if (!lastName) {
+      setLastNameError("Last name is required.");
+      isValid = false;
     }
+
+    if (!email) {
+      setEmailError("Email is required.");
+      isValid = false;
+    } else if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address.");
+      isValid = false;
+    }
+
+    if (!password) {
+      setPasswordError("Password is required.");
+      isValid = false;
+    } else if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      isValid = false;
+    }
+
+    if (!confirmPassword) {
+      setConfirmPasswordError("Confirm password is required.");
+      isValid = false;
+    } else if (password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match.");
+      isValid = false;
+    }
+
     if (!isChecked) {
-      alert("Please accept the Terms and Conditions");
+      setTermsError("Please accept the Terms and Conditions.");
+      isValid = false;
+    }
+
+    if (!isValid) {
       return;
     }
 
@@ -53,12 +106,14 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
         Email: email,
         Password: confirmPassword,
       };
-
+      console.log("---------------");
+      
       const response = await axios.post(`${BackendUrl}/api/user/CreateUser`, data);
       await AsyncStorage.setItem("token", response.data.data);
       dispatch(login(response.data.data));
     } catch (error) {
       console.log(error, "error");
+      // setEmailError("An error occurred. Please try again.");
     }
     setLoading(false);
   };
@@ -83,6 +138,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
             value={firstName}
             onChangeText={setFirstName}
           />
+          {firstNameError ? <Text style={styles.errorText}>{firstNameError}</Text> : null}
 
           {/* Last Name */}
           <Text style={styles.label}>Last Name</Text>
@@ -92,6 +148,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
             value={lastName}
             onChangeText={setLastName}
           />
+          {lastNameError ? <Text style={styles.errorText}>{lastNameError}</Text> : null}
 
           {/* Email */}
           <Text style={styles.label}>Email</Text>
@@ -106,6 +163,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
             />
             <Ionicons name="mail" size={20} color="black" style={styles.icon} />
           </View>
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
           {/* Password */}
           <Text style={styles.label}>Password</Text>
@@ -125,6 +183,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
               />
             </TouchableOpacity>
           </View>
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
           {/* Confirm Password */}
           <Text style={styles.label}>Confirm Password</Text>
@@ -146,6 +205,9 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
               />
             </TouchableOpacity>
           </View>
+          {confirmPasswordError ? (
+            <Text style={styles.errorText}>{confirmPasswordError}</Text>
+          ) : null}
 
           {/* Terms and Conditions Checkbox */}
           <View style={styles.checkboxContainer}>
@@ -158,6 +220,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
             </TouchableOpacity>
             <Text style={styles.checkboxLabel}>I accept the Terms & Conditions</Text>
           </View>
+          {termsError ? <Text style={styles.errorText}>{termsError}</Text> : null}
 
           {/* Sign Up Button */}
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
@@ -207,7 +270,7 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderRadius: 5,
     paddingHorizontal: 10,
-    marginBottom: 10,
+    marginBottom: 5,
     backgroundColor: "white",
     justifyContent: "space-between",
   },
@@ -221,7 +284,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     padding: 10,
     backgroundColor: "white",
-    marginBottom: 10,
+    marginBottom: 5,
   },
   icon: {
     marginLeft: 10,
@@ -259,5 +322,9 @@ const styles = StyleSheet.create({
   linkBold: {
     fontWeight: "bold",
   },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginBottom: 10,
+  },
 });
-

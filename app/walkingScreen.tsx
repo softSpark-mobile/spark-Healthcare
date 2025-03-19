@@ -6,12 +6,13 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
+  ScrollView,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import DropDownPicker from "react-native-dropdown-picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import WheelScrollPicker from "react-native-wheel-scrollview-picker";
 
 const { height, width } = Dimensions.get("window");
 
@@ -53,17 +54,21 @@ const WalkingScreen: React.FC = () => {
   ]);
 
   // Duration Target
-  const [hours, setHours] = useState<string>("00");
-  const [minutes, setMinutes] = useState<string>("00");
-  const [seconds, setSeconds] = useState<string>("00");
+  const [hours, setHours] = useState<number>(0);
+  const [minutes, setMinutes] = useState<number>(0);
+  const [seconds, setSeconds] = useState<number>(0);
   const [durationProgress, setDurationProgress] = useState<number>(0);
   const [isDurationStarted, setIsDurationStarted] = useState<boolean>(false);
   const [isDurationPaused, setIsDurationPaused] = useState<boolean>(false);
   const [isDurationStopped, setIsDurationStopped] = useState<boolean>(false);
   const [durationTimer, setDurationTimer] = useState<NodeJS.Timeout | null>(null);
-  const [showPicker, setShowPicker] = useState<boolean>(false);
-  const [pickerMode, setPickerMode] = useState<"hour" | "minute" | "second" | null>(null);
 
+  // Wheel Picker Items
+  const hoursArray = Array.from({ length: 24 }, (_, i) => i);
+  const minutesArray = Array.from({ length: 60 }, (_, i) => i);
+  const secondsArray = Array.from({ length: 60 }, (_, i) => i);
+
+  // Dropdown Options
   const dropdownOptions: string[] = [
     "Set Target",
     "Calorie Target",
@@ -71,6 +76,7 @@ const WalkingScreen: React.FC = () => {
     "Duration Target",
   ];
 
+  // Handle Dropdown Selection
   const handleDropdownSelect = (option: string) => {
     setSelectedOption(option);
     setDropdownVisible(false);
@@ -237,32 +243,6 @@ const WalkingScreen: React.FC = () => {
     setDurationProgress(0);
   };
 
-  const onChange = (event: any, selectedDate?: Date) => {
-    if (selectedDate) {
-      const hours = selectedDate.getHours().toString().padStart(2, "0");
-      const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
-      const seconds = selectedDate.getSeconds().toString().padStart(2, "0");
-
-      if (pickerMode === "hour") {
-        setHours(hours);
-      } else if (pickerMode === "minute") {
-        setMinutes(minutes);
-      } else if (pickerMode === "second") {
-        setSeconds(seconds);
-      }
-    }
-    setShowPicker(false);
-    setPickerMode(null);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (calorieTimer) clearInterval(calorieTimer);
-      if (stepTimer) clearInterval(stepTimer);
-      if (durationTimer) clearInterval(durationTimer);
-    };
-  }, [calorieTimer, stepTimer, durationTimer]);
-
   return (
     <View style={styles.container}>
       <MapView
@@ -284,19 +264,19 @@ const WalkingScreen: React.FC = () => {
       {/* DROPDOWN (Positioned at the Top) */}
       {isDropdownVisible && (
         <View style={styles.dropdown}>
-          {dropdownOptions.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.dropdownItem}
-              onPress={() => handleDropdownSelect(option)}
-            >
-              <Text style={styles.dropdownText}>{option}</Text>
-              {selectedOption === option && (
-                <Feather name="check" size={20} color="green" />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
+        {dropdownOptions.map((option, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.dropdownItem}
+            onPress={() => handleDropdownSelect(option)}
+          >
+            <Text style={styles.dropdownText}>{option}</Text>
+            {selectedOption === option && (
+              <Feather name="check" size={20} color="green" />
+            )}
+          </TouchableOpacity>
+        ))}
+      </View>
       )}
 
       {/* Set Target BottomSheet (Default Visible) */}
@@ -434,11 +414,7 @@ const WalkingScreen: React.FC = () => {
             {value && (
               <TextInput
                 style={styles.stepInput}
-                placeholder={
-                  value === "Km"
-                    ? "Enter Your distance in Kilo Meter "
-                    : "Enter Your distance in Meter"
-                }
+                placeholder="Enter the distance"
                 placeholderTextColor="#999"
                 keyboardType="numeric"
                 value={stepTarget}
@@ -515,57 +491,45 @@ const WalkingScreen: React.FC = () => {
               <AntDesign name="caretdown" size={20} color="black" />
             </TouchableOpacity>
 
-            {/* Time Selection */}
-            <View style={styles.timeSelectionContainer}>
-              <View style={styles.timePickerGroup}>
-                <Text style={styles.timePickerLabel}>Hours</Text>
-                <TouchableOpacity
-                  style={styles.timePickerButton}
-                  onPress={() => {
-                    setPickerMode("hour");
-                    setShowPicker(true);
-                  }}
-                >
-                  <Text style={styles.timePickerButtonText}>{hours}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.timePickerGroup}>
-                <Text style={styles.timePickerLabel}>Minutes</Text>
-                <TouchableOpacity
-                  style={styles.timePickerButton}
-                  onPress={() => {
-                    setPickerMode("minute");
-                    setShowPicker(true);
-                  }}
-                >
-                  <Text style={styles.timePickerButtonText}>{minutes}</Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.timePickerGroup}>
-                <Text style={styles.timePickerLabel}>Seconds</Text>
-                <TouchableOpacity
-                  style={styles.timePickerButton}
-                  onPress={() => {
-                    setPickerMode("second");
-                    setShowPicker(true);
-                  }}
-                >
-                  <Text style={styles.timePickerButtonText}>{seconds}</Text>
-                </TouchableOpacity>
-              </View>
+            {/* Wheel Pickers for Hours, Minutes, Seconds */}
+            <View style={styles.wheelPickerContainer}>
+              <WheelScrollPicker
+                dataSource={hoursArray}
+                selectedIndex={hours}
+                onValueChange={(value) => setHours(value || 0)}
+                wrapperHeight={80}
+                // wrapperWidth={100}
+                itemHeight={40}
+                highlightColor="#3ECD7E"
+              />
+              <Text style={styles.colonSeparator}>:</Text>
+              <WheelScrollPicker
+                dataSource={minutesArray}
+                selectedIndex={minutes}
+                onValueChange={(value) => setMinutes(value || 0)}
+                wrapperHeight={80}
+                // wrapperWidth={100}
+                itemHeight={40}
+                highlightColor="#3ECD7E"
+              />
+              <Text style={styles.colonSeparator}>:</Text>
+              <WheelScrollPicker
+                dataSource={secondsArray}
+                selectedIndex={seconds}
+                onValueChange={(value) => setSeconds(value|| 0)}
+                wrapperHeight={80}
+                // wrapperWidth={100}
+                itemHeight={40}
+                highlightColor="#3ECD7E"
+              />
             </View>
 
-            {showPicker && (
-              <DateTimePicker
-                value={new Date()}
-                mode="time"
-                is24Hour={true}
-                display="spinner"
-                onChange={onChange}
-              />
-            )}
+            {/* Selected Time Display */}
+            <Text style={styles.selectedTimeText}>
+              Selected Time: {String(hours).padStart(2, "0")}:
+              {String(minutes).padStart(2, "0")}:
+              {String(seconds).padStart(2, "0")}
+            </Text>
 
             {/* Progress Bar */}
             <View style={styles.progressBar}>
@@ -786,7 +750,7 @@ const styles = StyleSheet.create({
   // Dropdown
   dropdown: {
     position: "absolute",
-    top: 50,
+    top: 220,
     left: width * 0.1,
     width: width * 0.8,
     backgroundColor: "white",
@@ -801,44 +765,37 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   dropdownItem: {
+    flexDirection: 'row', // Align children horizontally
+    justifyContent: 'space-between', // Space out text and icon
+    alignItems: 'center', // Vertically center items
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
-  dropdownText: { fontSize: 16 },
+  dropdownText: {
+    fontSize: 16,
+  },
 
-  // Time Selection Container
-  timeSelectionContainer: {
+  // Wheel Picker Container
+  wheelPickerContainer: {
+    display: "flex",
     flexDirection: "row",
-    justifyContent: "space-around",
-    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 20,
+    height:100,
+  },
+  colonSeparator: {
+    fontSize: 24,
+    marginHorizontal: 0,
+    color: "#000",
   },
 
-  // Time Picker Group
-  timePickerGroup: {
-    alignItems: "center",
-  },
-
-  // Time Picker Label
-  timePickerLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 5,
-  },
-
-  // Time Picker Button
-  timePickerButton: {
-    width: 80,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  timePickerButtonText: {
+  // Selected Time Text
+  selectedTimeText: {
     fontSize: 18,
-    color: "#333",
+    fontWeight: "bold",
+    marginBottom: 20,
   },
 });
 

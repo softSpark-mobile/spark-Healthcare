@@ -2,6 +2,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-nativ
 import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import Loader from "../Loader";
+import { useRouter } from "expo-router";
 
 interface LoginScreenProps {
   setSignFlag: (flag: boolean) => void;
@@ -12,23 +13,30 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setSignFlag }) => {
   const [password, setPassword] = useState<string>("");
   const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-
+  const [emailError, setEmailError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
+  const router =useRouter();
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
   const handleLogin = () => {
-    setErrorMessage(""); // Reset error message
+    setEmailError(""); // Reset email error
+    setPasswordError(""); // Reset password error
 
-    if (!email || !password) {
-      setErrorMessage("Email and Password are required.");
+    if (!email) {
+      setEmailError("Email is required.");
       return;
     }
 
     if (!validateEmail(email)) {
-      setErrorMessage("Please enter a valid email address.");
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!password) {
+      setPasswordError("Password is required.");
       return;
     }
 
@@ -37,8 +45,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setSignFlag }) => {
       setLoading(false);
       if (email === "test@example.com" && password === "123456") {
         alert("Login Success!");
+        router.push('/(drawer)/(tabs)/(dashboardStack)')
       } else {
-        setErrorMessage("Incorrect email or password.");
+        setPasswordError("Incorrect email or password.");
       }
     }, 2000);
   };
@@ -64,6 +73,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setSignFlag }) => {
             />
             <Ionicons name="mail" size={20} color="black" style={styles.icon} />
           </View>
+          {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
 
           <Text style={styles.label}>Password</Text>
           <View style={styles.inputContainer}>
@@ -78,8 +88,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setSignFlag }) => {
               <Ionicons name={isPasswordVisible ? "eye-off" : "eye"} size={24} color="black" />
             </TouchableOpacity>
           </View>
-
-          {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+          {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
 
           <TouchableOpacity>
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
@@ -131,7 +140,7 @@ const styles = StyleSheet.create({
     borderColor: "white",
     borderRadius: 5,
     paddingHorizontal: 10,
-    marginBottom: 10,
+    marginBottom: 5, // Reduced margin to make space for error message
     backgroundColor: "white",
     justifyContent: "space-between",
   },
@@ -149,7 +158,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     marginBottom: 10,
-    textAlign: "center",
+    textAlign: "left",
   },
   forgotPassword: {
     marginBottom: 15,
@@ -161,7 +170,7 @@ const styles = StyleSheet.create({
   loginButton: {
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
-    flexDirection:"row",
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: 'center',
     width: 155,

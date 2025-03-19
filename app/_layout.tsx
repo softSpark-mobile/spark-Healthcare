@@ -35,102 +35,115 @@ function MainApp() {
   // if (!authState) {
   //   console.log("-----");
   //   return <SplashScreen />;
-  // } else {
+  // } 
+  // else {
   //   if (!authss.token) {
   //     return <Auth />;
-  //   } else {
+  //   } 
+  //   else {
   //     if (authss.isOnboarding === false) {
   //       return <OnboardingScreen />;
-  //     } else {
-  return (
-    // <>
-    //   <OnboardingScreen />
-    // </>
-    <Stack>
-      <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-      {/* Walking Screen */}
-      <Stack.Screen
-        name="walkingScreen"
-        options={{
-          headerTitle: "Walking", // Set Header Title
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginEnd: 20 }}
-            >
-              <AntDesign name="arrowleft" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Stack.Screen name="running" options={{ headerShown: false }} />
-      <Stack.Screen name="cycling" options={{ headerShown: false }} />
-      <Stack.Screen name="healthDashboard" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="settings"
-        options={{
-          headerTitle: "Settings", // Set Header Title
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginEnd: 20 }}
-            >
-              <AntDesign name="arrowleft" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="updatePersonal"
-        options={{
-          headerTitle: "Personal Information", // Set Header Title
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginEnd: 20 }}
-            >
-              <AntDesign name="arrowleft" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="updateHealthData"
-        options={{
-          headerTitle: "Health Data", // Set Header Title
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginEnd: 20 }}
-            >
-              <AntDesign name="arrowleft" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-      <Stack.Screen
-        name="updateHealthHistory"
-        options={{
-          headerTitle: "Health History", // Set Header Title
-          headerShown: true,
-          headerLeft: () => (
-            <TouchableOpacity
-              onPress={() => router.back()}
-              style={{ marginEnd: 20 }}
-            >
-              <AntDesign name="arrowleft" size={24} color="black" />
-            </TouchableOpacity>
-          ),
-        }}
-      />
-    </Stack>
-  );
-}
+  //     } 
+  //     else {
+        return (
+          // <>
+          //   <OnboardingScreen />
+          // </>
+          <Stack>
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+            {/* Walking Screen */}
+            <Stack.Screen
+              name="walkingScreen"
+              options={{
+                headerTitle: "Walking", // Set Header Title
+                headerShown: true,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{ marginEnd: 20 }}
+                  >
+                    <AntDesign name="arrowleft" size={24} color="black" />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+            <Stack.Screen name="running" />
+            <Stack.Screen name="cycling" />
+            <Stack.Screen
+              name="healthDashboard"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="settings"
+              options={{
+                headerTitle: "Settings", // Set Header Title
+                headerShown: true,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{ marginEnd: 20 }}
+                  >
+                    <AntDesign name="arrowleft" size={24} color="black" />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+            <Stack.Screen
+              name="updatePersonal"
+              options={{
+                headerTitle: "Personal Information", // Set Header Title
+                headerShown: true,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{ marginEnd: 20 }}
+                  >
+                    <AntDesign name="arrowleft" size={24} color="black" />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+            <Stack.Screen
+              name="updateHealthData"
+              options={{
+                headerTitle: "Health Data", // Set Header Title
+                headerShown: true,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{ marginEnd: 20 }}
+                  >
+                    <AntDesign name="arrowleft" size={24} color="black" />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+            <Stack.Screen
+              name="updateHealthHistory"
+              options={{
+                headerTitle: "Health History", // Set Header Title
+                headerShown: true,
+                headerLeft: () => (
+                  <TouchableOpacity
+                    onPress={() => router.back()}
+                    style={{ marginEnd: 20 }}
+                  >
+                    <AntDesign name="arrowleft" size={24} color="black" />
+                  </TouchableOpacity>
+                ),
+              }}
+            />
+            <Stack.Screen name="nearbyhospital"
+            options={{
+              headerTitle: "Near By hospital", // Set Header Title
+              headerShown: true,
+        
+            }} 
+            />
+          </Stack>
+        );
+      }
 //     }
 //   }
 // }

@@ -450,7 +450,7 @@ const Index: React.FC = () => {
                     name={direction === "left" ? "caretleft" : "caretright"} // Corrected icon names
                     size={24} // Adjust size here
                     color="white"
-                    style={{ paddingHorizontal: 20 }} // Adjusts spacing
+                    // style={{ paddingHorizontal: 10 }} // Adjusts spacing
                   />
                 )}
                 theme={{
@@ -1172,7 +1172,7 @@ const Index: React.FC = () => {
                   <MaterialCommunityIcons
                     name="weather-night"
                     size={24}
-                    color="#f65427"
+                    color="#3ECD7E"
                   />
                 </View>
                 <View style={styles.amountContainer}>
@@ -1321,17 +1321,19 @@ const Index: React.FC = () => {
               </View>
             </TouchableOpacity>
             {/* Cycling View */}
-            <View style={styles.workoutView}>
-              <View
-                style={[
-                  styles.workoutIconContainer,
-                  { backgroundColor: "#eeeeee" },
-                ]}
-              >
-                <Ionicons name="bicycle-sharp" size={24} color="black" />
+            <TouchableOpacity onPress={() => router.push("/cycling")}>
+              <View style={styles.workoutView}>
+                <View
+                  style={[
+                    styles.workoutIconContainer,
+                    { backgroundColor: "#eeeeee" },
+                  ]}
+                >
+                  <Ionicons name="bicycle-sharp" size={24} color="black" />
+                </View>
+                <Text style={styles.workoutText}>cycling</Text>
               </View>
-              <Text style={styles.workoutText}>cycling</Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
           {/* Blood Pressure  */}

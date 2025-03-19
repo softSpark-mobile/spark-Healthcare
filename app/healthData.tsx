@@ -19,8 +19,16 @@ import { Entypo } from "@expo/vector-icons"; // Using Entypo for the arrow-left 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { BackendUrl } from "@/constants/backendUrl";
 import axios from "axios";
+import Loader from "@/components/Loader";
 
-export default function OnboardingTwo({ setOnboardingFlag }) {
+// Define the type for the props
+interface OnboardingTwoProps {
+  setOnboardingFlag: (flag: number) => void; // Explicitly define the type
+}
+
+export default function OnboardingTwo({ setOnboardingFlag }: OnboardingTwoProps) {
+  // Loader state
+    const [isLoading, setIsLoading] = useState<boolean>(false);
   const userData = useSelector((state) => state.auth);
   const dispatch: AppDispatch = useDispatch();
   const [bodyType, setBodyType] = useState("");
@@ -53,6 +61,7 @@ export default function OnboardingTwo({ setOnboardingFlag }) {
   const handleSubmit = async () => {
     console.log("Hitteddd");
     setOnboardingFlag(2);
+    setIsLoading(true)
     try {
       const data = {
         BodyType: bodyType,
@@ -84,12 +93,19 @@ export default function OnboardingTwo({ setOnboardingFlag }) {
       if (response.status === 200) {
         setOnboardingFlag(2);
       }
-    } catch (error) {
+    } 
+    catch (error) {
       console.log(error, "error");
+    }
+    finally {
+      setIsLoading(false); // Hide loader
     }
   };
   return (
     <ScrollView style={styles.container}>
+       {isLoading ? (
+        <Loader /> // Show loader when isLoading is true
+      ) : (
       <View>
         <Text style={styles.title}>Health Information</Text>
 
@@ -254,6 +270,7 @@ export default function OnboardingTwo({ setOnboardingFlag }) {
           </Pressable>
         </View>
       </View>
+        )}
     </ScrollView>
   );
 }

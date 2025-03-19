@@ -149,8 +149,9 @@ const ActivityScreen: React.FC = () => {
   const [foodInput, setFoodInput] = useState<string>("");
   // Food Suggestions
   const [selectedMeal, setSelectedMeal] = useState<string>("Breakfast");
+  const [showFoodList, setShowFoodList] = useState<boolean>(false); // State to control food list visibility
   const totalCalories =
-    foodData[selectedMeal]?.reduce((sum, food) => sum + food.calories, 0) || 0;
+    foodData[selectedMeal]?.reduce((sum:number, food) => sum + food.calories, 0) || 0;
 
   const handleDonePress = (foodName: string) => {
     console.log(`${foodName} marked as done!`);
@@ -173,13 +174,11 @@ const ActivityScreen: React.FC = () => {
   };
 
   // Refresh
-  const handleRefresh = () => {};
-  // food List
+  const handleSearch = () => {
+    setShowFoodList(true); // Show food list when search button is clicked
+  };
 
-  const MAX_CALORIES = 600;
-  const MAX_CARBS = 50;
-  const MAX_PORTION = 200;
-  //Blood pressure Model
+  // Blood pressure Model
   const [bloodPressureModalVisible, setBloodPressureModalVisible] =
     useState(false);
   const [sys, setSys] = useState<number | null>(null);
@@ -187,7 +186,9 @@ const ActivityScreen: React.FC = () => {
   const handleSubmit = () => {
     console.log(`Meal: ${actualMeal}, Food: ${foodInput}`);
     // Handle form submission logic here
+    setShowFoodList(true);
   };
+
   return (
     <View>
       <ScrollView>
@@ -345,9 +346,6 @@ const ActivityScreen: React.FC = () => {
                 />
                 <Text style={styles.unitText}>mg/dl</Text>
               </View>
-              {/* <TouchableOpacity style={styles.okButton}>
-                <Text style={styles.okText}>OK</Text>
-              </TouchableOpacity> */}
             </View>
 
             {/* Blood Pressure Input */}
@@ -363,15 +361,13 @@ const ActivityScreen: React.FC = () => {
                 />
                 <Text style={styles.unitText}>mm/Hg</Text>
               </View>
-              {/* <TouchableOpacity style={styles.okButton}>
-                <Text style={styles.okText}>OK</Text>
-              </TouchableOpacity> */}
             </View>
+
             {/* Refresh Again Button */}
             <View style={styles.refreshContainer}>
               <TouchableOpacity
                 style={styles.refreshButton}
-                onPress={handleRefresh}
+                onPress={handleSearch}
               >
                 <Text style={styles.refreshText}>Search</Text>
               </TouchableOpacity>
@@ -430,75 +426,76 @@ const ActivityScreen: React.FC = () => {
 
               {/* Show Submit Button only when input is provided */}
               <View style={styles.submitContainer}>
-              {actualMeal && foodInput.trim() !== "" && (
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleSubmit}
-                >
-                  <Text style={styles.submitButtonText}>Submit</Text>
-                </TouchableOpacity>
-              )}
+                {actualMeal && foodInput.trim() !== "" && (
+                  <TouchableOpacity
+                    style={styles.submitButton}
+                    onPress={handleSubmit}
+                  >
+                    <Text style={styles.submitButtonText}>Submit</Text>
+                  </TouchableOpacity>
+                )}
               </View>
-              
             </View>
 
-            {/* Food Suggestion  */}
-            <View style={styles.foodSuggestcontainer}>
-              {/* Meal Selection Header */}
-              <View style={styles.foodMealHeader}>
-                <View style={styles.mealSelection}>
-                  {meals.map((meal) => (
-                    <TouchableOpacity
-                      key={meal}
-                      style={[
-                        styles.mealButton,
-                        selectedMeal === meal && styles.activeMeal,
-                      ]}
-                      onPress={() => setSelectedMeal(meal)}
-                    >
-                      <Text
+            {/* Food List - Conditionally Rendered */}
+            {showFoodList && (
+              <View style={styles.foodSuggestcontainer}>
+                {/* Meal Selection Header */}
+                <View style={styles.foodMealHeader}>
+                  <View style={styles.mealSelection}>
+                    {meals.map((meal) => (
+                      <TouchableOpacity
+                        key={meal}
                         style={[
-                          styles.mealText,
-                          selectedMeal === meal && { color: "black" }, // Change text color when active
+                          styles.mealButton,
+                          selectedMeal === meal && styles.activeMeal,
                         ]}
+                        onPress={() => setSelectedMeal(meal)}
                       >
-                        {meal}
-                      </Text>
-                    </TouchableOpacity>
+                        <Text
+                          style={[
+                            styles.mealText,
+                            selectedMeal === meal && { color: "black" },
+                          ]}
+                        >
+                          {meal}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Total Calories */}
+                <Text style={styles.totalCalories}>
+                  Total Calories: {totalCalories} kcal
+                </Text>
+
+                {/* Food List */}
+                <View>
+                  {foodData[selectedMeal].map((item) => (
+                    <View key={item.id} style={styles.foodItem}>
+                      <Image source={item.image} style={styles.foodImage} />
+                      <View style={styles.foodInfoContainer}>
+                        <Text style={styles.foodName}>{item.name}</Text>
+                        <Text>Calories: {item.calories} kcal</Text>
+                        <Text>
+                          Fat: {item.fat} g | Protein: {item.protein} g | Carbs:{" "}
+                          {item.carbs} g
+                        </Text>
+
+                        {/* ✅ Done Button at Bottom of Card */}
+                        <TouchableOpacity
+                          style={styles.foodDoneButton}
+                          onPress={() => handleDonePress(item.name)}
+                        >
+                          <Text style={styles.foodDoneButtonText}>Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
                   ))}
                 </View>
               </View>
-
-              {/* Total Calories */}
-              <Text style={styles.totalCalories}>
-                Total Calories: {totalCalories} kcal
-              </Text>
-
-              {/* Food List */}
-              <View>
-                {foodData[selectedMeal].map((item) => (
-                  <View key={item.id} style={styles.foodItem}>
-                    <Image source={item.image} style={styles.foodImage} />
-                    <View style={styles.foodInfoContainer}>
-                      <Text style={styles.foodName}>{item.name}</Text>
-                      <Text>Calories: {item.calories} kcal</Text>
-                      <Text>
-                        Fat: {item.fat} g | Protein: {item.protein} g | Carbs:{" "}
-                        {item.carbs} g
-                      </Text>
-
-                      {/* ✅ Done Button at Bottom of Card */}
-                      <TouchableOpacity
-                        style={styles.doneButton}
-                        onPress={() => alert(`${item.name} marked as done!`)}
-                      >
-                        <Text style={styles.doneButtonText}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -576,15 +573,10 @@ const styles = StyleSheet.create({
   },
   navButton: {
     padding: 10,
-    // backgroundColor: "#007bff",
     borderRadius: 5,
     marginHorizontal: 5,
     minWidth: 40,
     alignItems: "center",
-  },
-  navButtonText: {
-    color: "#fff",
-    fontSize: 18,
   },
   modalContainer: {
     flex: 1,
@@ -608,7 +600,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 50,
   },
-  monthDoneButton: {
+  doneButton: {
     marginTop: 10,
     padding: 10,
     backgroundColor: "#00318D",
@@ -616,21 +608,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    color: "#000",
+    color: "#FFF",
     fontSize: 16,
   },
-  // Input container
-
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginTop: 20,
-    paddingHorizontal: 20, // Left & right padding
+    paddingHorizontal: 20,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1, // Input takes available space
+    flex: 1,
     backgroundColor: "white",
     borderRadius: 10,
     borderWidth: 1,
@@ -648,19 +638,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginRight: 10,
   },
-  okButton: {
-    backgroundColor: "#00318D",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginLeft: 10, // Space between input and button
-  },
-  okText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-  },
-
-  // Refresh
   refreshContainer: {
     flex: 1,
     justifyContent: "center",
@@ -679,7 +656,6 @@ const styles = StyleSheet.create({
     fontWeight: "normal",
     fontSize: 16,
   },
-  // Acutal Food
   actualFoodContainer: {
     padding: 10,
   },
@@ -696,8 +672,8 @@ const styles = StyleSheet.create({
   dropdownWrapper: {
     borderWidth: 1,
     borderColor: "#ccc",
-    borderRadius: 10, // Rounded border
-    overflow: "hidden", // Ensures content stays within border radius
+    borderRadius: 10,
+    overflow: "hidden",
     marginTop: 10,
   },
   actualFoodPicker: {
@@ -712,7 +688,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     width: "100%",
   },
-  submitContainer:{
+  submitContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
@@ -730,14 +706,12 @@ const styles = StyleSheet.create({
     fontWeight: "normal",
     fontSize: 16,
   },
-  // Food Suggestion
   foodSuggestcontainer: {
     flex: 1,
     padding: 20,
     backgroundColor: "#fff",
     marginTop: 10,
   },
-
   foodMealHeader: {
     width: "100%",
     backgroundColor: "#00318D",
@@ -786,25 +760,23 @@ const styles = StyleSheet.create({
   },
   foodInfoContainer: {
     flex: 1,
-    justifyContent: "space-between", // Pushes the Done button to the bottom
+    justifyContent: "space-between",
     paddingLeft: 10,
   },
   foodImage: { width: 50, height: 50, marginRight: 10, borderRadius: 25 },
   foodName: { fontSize: 16, fontWeight: "bold" },
-  doneButton: {
+  foodDoneButton: {
     backgroundColor: "#00318D",
     paddingVertical: 8,
     paddingHorizontal: 15,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 10, // Ensures spacing from text
-    alignSelf: "flex-end", // Aligns button to the left
+    marginTop: 10,
+    alignSelf: "flex-end",
   },
-
-  doneButtonText: {
+  foodDoneButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
-    // fontWeight: "bold",
   },
 });
 

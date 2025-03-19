@@ -16,7 +16,7 @@ const Settings = () => {
         </View>
         <Pressable
           style={styles.item}
-          onPress={() => console.log("Update Profile")}
+          onPress={() => router.push('/(drawer)/(tabs)/(profilestack)/edit-profile')}
         >
           <Text style={styles.itemText}>Update Profile</Text>
         </Pressable>

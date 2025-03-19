@@ -33,7 +33,7 @@ const DrawerList: React.FC = () => {
         <MenuItem label="Notification" icon="bell" onPress={() => router.push("/(drawer)/(tabs)/(notificationStack)/notification")} />
         <MenuItem label="Activity" icon="bar-chart" onPress={() => router.push("/(drawer)/(tabs)/(activityStack)/activityScreen")} />
         <MenuItem label="Profile" icon="user" onPress={() => router.push("/(drawer)/(tabs)/(profilestack)/profile")} />
-        <MenuItem label="Map" icon="map-pin" onPress={() => console.log("map")} />
+        <MenuItem label="Map" icon="map-pin" onPress={() => router.push("/nearbyhospital")} />
         <MenuItem label="Logout" icon="log-out" onPress={() => console.log("Logging Out")} isLogout />
       </View>
     </DrawerContentScrollView>

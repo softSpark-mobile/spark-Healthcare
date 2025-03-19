@@ -8,8 +8,7 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 
 const ProfileScreen: React.FC = () => {
   const [name, setName] = useState<string>("John Doe");
@@ -21,61 +20,23 @@ const ProfileScreen: React.FC = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // Function to pick an image from the gallery or camera
-  const handleImagePick = async (
-    source: "camera" | "gallery",
-    type: "profile" | "cover"
-  ) => {
-    let result;
-    if (source === "camera") {
-      result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [16, 9], // For cover image aspect ratio
-        quality: 1,
-      });
-    } else {
-      result = await ImagePicker.launchImageLibraryAsync({
-        allowsEditing: true,
-        aspect: [16, 9], // For cover image aspect ratio
-        quality: 1,
-      });
-    }
-
-    if (!result.canceled) {
-      if (type === "profile") {
-        setProfileImage(result.assets[0].uri);
-      } else {
-        setCoverImage(result.assets[0].uri);
-      }
-    }
-  };
-
-  // Show options when clicking on the camera icon
-  const showImagePickerOptions = (type: "profile" | "cover") => {
-    Alert.alert("Select Image", "Choose an option", [
-      { text: "Camera", onPress: () => handleImagePick("camera", type) },
-      { text: "Gallery", onPress: () => handleImagePick("gallery", type) },
-      { text: "Cancel", style: "cancel" },
-    ]);
-  };
+ 
 
   return (
     <View style={styles.container}>
-      {/* Cover Photo (Click to change) */}
-      <TouchableOpacity onPress={() => showImagePickerOptions("cover")}>
-        <View style={styles.coverContainer}>
-          <Image
-            source={
-              coverImage
-                ? { uri: coverImage }
-                : require("@/assets/images/placeholder.png")
-            }
-            style={styles.coverImage}
-          />
-        </View>
-      </TouchableOpacity>
+      {/* Cover Photo (Click to change - Disabled) */}
+      <View style={styles.coverContainer}>
+        <Image
+          source={
+            coverImage
+              ? { uri: coverImage }
+              : require("@/assets/images/placeholder.png")
+          }
+          style={styles.coverImage}
+        />
+      </View>
 
-      {/* Profile Picture */}
+      {/* Profile Picture (Click to change - Disabled) */}
       <View style={styles.profilePictureContainer}>
         <Image
           source={
@@ -85,12 +46,6 @@ const ProfileScreen: React.FC = () => {
           }
           style={styles.profileImage}
         />
-        <TouchableOpacity
-          style={styles.cameraIcon}
-          onPress={() => showImagePickerOptions("profile")}
-        >
-          <Ionicons name="camera" size={20} color="#fff" />
-        </TouchableOpacity>
       </View>
 
       {/* Profile Details */}
@@ -139,10 +94,10 @@ const ProfileScreen: React.FC = () => {
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => setIsEditing(!isEditing)}
+            onPress={() => router.push('/edit-profile')}
           >
             <Text style={styles.saveButtonText}>
-              {isEditing ? "Save Changes" : "Edit Profile"}
+              Edit Profile
             </Text>
           </TouchableOpacity>
         </View>
@@ -153,11 +108,20 @@ const ProfileScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  coverContainer: { width: "100%", height: 150 },
-  coverImage: { width: "100%", height: "100%", resizeMode: "cover" },
+  coverContainer: { 
+    width: "100%", 
+    height: 150, 
+    justifyContent: "center", 
+    alignItems: "center" 
+  },
+  coverImage: { 
+    width: "100%", 
+    height: "100%", 
+    resizeMode: "cover" 
+  },
   profilePictureContainer: {
     position: "absolute",
-    top: 120,
+    top: 85, // Adjust this value to position the profile picture correctly
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
@@ -169,19 +133,16 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#fff",
   },
-  cameraIcon: {
-    position: "absolute",
-    right: 5,
-    bottom: 5,
-    backgroundColor: "#007bff",
-    borderRadius: 20,
-    width: 30,
-    height: 30,
-    alignItems: "center",
-    justifyContent: "center",
+  detailsContainer: { 
+    marginTop: 50, 
+    paddingHorizontal: 20 
   },
-  detailsContainer: { marginTop: 80, paddingHorizontal: 20 },
-  label: { fontSize: 16, fontWeight: "bold", color: "#000", marginTop: 10 },
+  label: { 
+    fontSize: 16, 
+    fontWeight: "bold", 
+    color: "#000", 
+    marginTop: 10 
+  },
   input: {
     backgroundColor: "transparent",
     padding: 10,
@@ -192,14 +153,18 @@ const styles = StyleSheet.create({
     color: "#000",
   },
   saveButton: {
-    backgroundColor: "#3ECD7E",
+    backgroundColor: "#00318D",
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 13,
     alignItems: "center",
     marginTop: 20,
-    width: "50%",
+    width: "80%",
   },
-  saveButtonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  saveButtonText: { 
+    color: "#fff", 
+    fontSize: 16, 
+    fontWeight: "bold" 
+  },
 });
 
 export default ProfileScreen;

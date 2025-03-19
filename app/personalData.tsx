@@ -8,15 +8,14 @@ import {
   Alert,
   StyleSheet,
   LogBox,
+  ActivityIndicator,
 } from "react-native";
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch } from "../components/Redux/store";
+import { AppDispatch, RootState } from "../components/Redux/store";
 import { goToOnboardingTwo, login } from "../components/Redux/authSlice";
 import * as DocumentPicker from "expo-document-picker";
-// import {CountryPicker} from "react-native-country-codes-picker";
 import axios from "axios";
-// import ListHeaderComponent from "@/components/PhoneNumber"
 import { Icon } from "react-native-paper";
 import { BackendUrl } from "@/constants/backendUrl";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -25,16 +24,31 @@ import CountryPicker, {
   CountryCode,
 } from "react-native-country-picker-modal";
 import PhoneInput from "react-native-phone-number-input";
+import Loader from "@/components/Loader";
 
 // Suppress unnecessary warnings
 LogBox.ignoreLogs([
   "Support for defaultProps will be removed from function components",
 ]);
 
-export default function OnboardingOne({ setOnboardingFlag }): JSX.Element {
+interface OnboardingOneProps {
+  setOnboardingFlag: (flag: number) => void;
+}
+
+// Loader Component
+// const Loader = () => {
+//   return (
+//     <View style={styles.loaderContainer}>
+//       <ActivityIndicator size="large" color="#0000ff" />
+//     </View>
+//   );
+// };
+
+export default function OnboardingOne({ setOnboardingFlag }: OnboardingOneProps): JSX.Element {
   const dispatch: AppDispatch = useDispatch();
-  const userData = useSelector((state) => state.auth);
-  console.log(userData, "userVlauess");
+  const userData = useSelector((state: RootState) => state.auth);
+  console.log(userData, "userValues");
+
   const [fullName, setFullName] = useState<string>("");
   const [age, setAge] = useState<string>("");
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
@@ -45,16 +59,68 @@ export default function OnboardingOne({ setOnboardingFlag }): JSX.Element {
   const [country, setCountry] = useState<string>("");
   const [state, setState] = useState<string>("");
   const [district, setDistrict] = useState<string>("");
-  const [selectedFile, setSelectedFile] =
-    useState<DocumentPicker.DocumentPickerResult>();
+  const [selectedFile, setSelectedFile] = useState<DocumentPicker.DocumentPickerResult | null>(null);
 
-  //phone Number
+  // Phone Number
   const [countryCode, setCountryCode] = useState<CountryCode>("IN"); // Default: India
   const [callingCode, setCallingCode] = useState<string>("91"); // Default: +91
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const phoneInputRef = useRef<TextInput>(null);
 
-  const [fileUri, setFileUri] = useState("");
+  const [fileUri, setFileUri] = useState<string>("");
+
+  // Error messages for each field
+  const [errors, setErrors] = useState<{ [key: string]: string }>({
+    fullName: "",
+    age: "",
+    dateOfBirth: "",
+    gender: "",
+    email: "",
+    address: "",
+    country: "",
+    state: "",
+    district: "",
+    phoneNumber: "",
+    document: "",
+  });
+
+  // Loader state
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Validate email format
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Validate date of birth (not in the future)
+  const validateDateOfBirth = (date: Date): boolean => {
+    const currentDate = new Date();
+    return date <= currentDate;
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!fullName) newErrors.fullName = "Full Name is required.";
+    if (!age) newErrors.age = "Age is required.";
+    if (!dateOfBirth) newErrors.dateOfBirth = "Date of Birth is required.";
+    if (dateOfBirth && !validateDateOfBirth(dateOfBirth)) {
+      newErrors.dateOfBirth = "Date of Birth cannot be in the future.";
+    }
+    if (!gender) newErrors.gender = "Gender is required.";
+    if (!email) newErrors.email = "Email is required.";
+    if (email && !validateEmail(email)) newErrors.email = "Invalid email format.";
+    if (!address) newErrors.address = "Address is required.";
+    if (!country) newErrors.country = "Country is required.";
+    if (!state) newErrors.state = "State is required.";
+    if (!district) newErrors.district = "District is required.";
+    if (!phoneNumber) newErrors.phoneNumber = "Phone Number is required.";
+    if (!selectedFile) newErrors.document = "Document is required.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Return true if no errors
+  };
 
   const pickDocument = async () => {
     try {
@@ -69,56 +135,60 @@ export default function OnboardingOne({ setOnboardingFlag }): JSX.Element {
         return;
       }
 
-      if (!result.canceled) {
+      if (!result.canceled && result.assets && result.assets.length > 0) {
         setFileUri(result.assets[0].uri);
-      }
-
-      if (!result.assets || result.assets.length === 0) {
+        setSelectedFile(result);
+        setErrors((prev) => ({ ...prev, document: "" })); // Clear document error
+        Alert.alert("Success", "Document selected successfully.");
+      } else {
         Alert.alert("Error", "No file selected.");
-        return;
       }
-
-      setSelectedFile(result);
-      Alert.alert("Success", "Document selected successfully.");
     } catch (error) {
       Alert.alert("Error", "Failed to pick document.");
     }
   };
 
   const handleConfirm = (date: Date) => {
+    if (!validateDateOfBirth(date)) {
+      setErrors((prev) => ({ ...prev, dateOfBirth: "Date of Birth cannot be in the future." }));
+      setDatePickerVisible(false); // Close the date picker
+      return;
+    }
     setDateOfBirth(date);
-    setDatePickerVisible(false);
+    setDatePickerVisible(false); // Close the date picker
+    setErrors((prev) => ({ ...prev, dateOfBirth: "" })); // Clear date of birth error
   };
 
   const handleSubmit = async () => {
-    console.log("Calleddd");
-    console.log(callingCode,phoneNumber,"------");
-    
-    setOnboardingFlag(1);
+    if (!validateForm()) return; // Stop if validation fails
+
+    setIsLoading(true); // Show loader
+
     try {
       const data = {
         Name: fullName,
         Age: age,
-        DOB: dateOfBirth,
-        Gender: gender,
+        DOB: dateOfBirth?.toISOString() || "",
+        Gender: gender || "",
         Address: address,
         District: district,
         State: state,
         Country: country,
-        PhoneNo: countryCode + phoneNumber,
+        PhoneNo: `${callingCode}${phoneNumber}`,
       };
-      const formData = new FormData();
-      console.log(formData, "before");
-      for (const key in data) {
-        formData.append(key, data[key].toString());
-      }
-      console.log(formData, "after");
 
-      formData.append("UserDocument", {
-        uri: selectedFile?.assets[0].uri,
-        type: selectedFile?.assets[0].mimeType,
-        name: selectedFile?.assets[0].name,
-      });
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(data)) {
+        formData.append(key, value);
+      }
+
+      if (selectedFile?.assets && selectedFile.assets.length > 0) {
+        formData.append("UserDocument", {
+          uri: selectedFile.assets[0].uri,
+          type: selectedFile.assets[0].mimeType || "application/octet-stream",
+          name: selectedFile.assets[0].name || "file",
+        });
+      }
 
       const response = await axios.put(
         `${BackendUrl}/api/user/UpadateUserValues`,
@@ -130,209 +200,252 @@ export default function OnboardingOne({ setOnboardingFlag }): JSX.Element {
           },
         }
       );
+
       console.log(response.data, "DataFlow");
       if (response.status === 200) {
-        // await AsyncStorage.setItem("token", response.data.data);
-        // dispatch(login(response.data.data));
         setOnboardingFlag(1);
       }
     } catch (error) {
       console.log(error, "error");
+      Alert.alert("Error", "Failed to submit the form. Please try again.");
+    } finally {
+      setIsLoading(false); // Hide loader
     }
-    // setOnboardingFlag(1);
   };
-  console.log(selectedFile, "fileVluesss");
+
   return (
     <View style={styles.container}>
-      <ScrollView>
-        <Text style={styles.title}>Personal / General</Text>
+      {isLoading ? (
+        <Loader /> // Show loader when isLoading is true
+      ) : (
+        <ScrollView>
+          <Text style={styles.title}>Personal / General</Text>
 
-        {/* Full Name */}
-        <Text style={styles.label}>Preferred Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your full name"
-          placeholderTextColor="black"
-          autoCapitalize="words"
-          value={fullName}
-          onChangeText={setFullName}
-        />
+          {/* Full Name */}
+          <Text style={styles.label}>Preferred Name</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your full name"
+            placeholderTextColor="black"
+            autoCapitalize="words"
+            value={fullName}
+            onChangeText={(text) => {
+              setFullName(text);
+              setErrors((prev) => ({ ...prev, fullName: "" })); // Clear error on change
+            }}
+          />
+          {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
 
-        {/* Age */}
-        <Text style={styles.label}>How old are you?</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your age"
-          placeholderTextColor="black"
-          keyboardType="numeric"
-          value={age}
-          onChangeText={setAge}
-        />
+          {/* Age */}
+          <Text style={styles.label}>How old are you?</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your age"
+            placeholderTextColor="black"
+            keyboardType="numeric"
+            value={age}
+            onChangeText={(text) => {
+              setAge(text);
+              setErrors((prev) => ({ ...prev, age: "" })); // Clear error on change
+            }}
+          />
+          {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
 
-        {/* Gender Selection with Tick Mark */}
-        <Text style={styles.label}>Gender</Text>
-        <View style={styles.genderContainer}>
-          {["Male", "Female", "Others"].map((option) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.genderButton,
-                gender === option && styles.genderButtonSelected,
-              ]}
-              onPress={() => setGender(option)}
-            >
-              <Text style={styles.genderText}>
-                {option} {gender === option ? "✔" : ""}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          {/* Gender Selection with Tick Mark */}
+          <Text style={styles.label}>Gender</Text>
+          <View style={styles.genderContainer}>
+            {["Male", "Female", "Others"].map((option) => (
+              <TouchableOpacity
+                key={option}
+                style={[
+                  styles.genderButton,
+                  gender === option && styles.genderButtonSelected,
+                ]}
+                onPress={() => {
+                  setGender(option);
+                  setErrors((prev) => ({ ...prev, gender: "" })); // Clear error on change
+                }}
+              >
+                <Text style={styles.genderText}>
+                  {option} {gender === option ? "✔" : ""}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {errors.gender ? <Text style={styles.errorText}>{errors.gender}</Text> : null}
 
-        {/* Date of Birth */}
-        <Text style={styles.label}>Date of Birth</Text>
-        <TouchableOpacity
-          style={styles.input}
-          onPress={() => setDatePickerVisible(true)}
-        >
-          <Text style={{ color: "black", fontSize: 16 }}>
-            {dateOfBirth
-              ? dateOfBirth.toDateString()
-              : "Select your date of birth"}
-          </Text>
-        </TouchableOpacity>
+          {/* Date of Birth */}
+          <Text style={styles.label}>Date of Birth</Text>
+          <TouchableOpacity
+            style={styles.input}
+            onPress={() => setDatePickerVisible(true)}
+          >
+            <Text style={{ color: "black", fontSize: 16 }}>
+              {dateOfBirth
+                ? dateOfBirth.toDateString()
+                : "Select your date of birth"}
+            </Text>
+          </TouchableOpacity>
+          {errors.dateOfBirth ? <Text style={styles.errorText}>{errors.dateOfBirth}</Text> : null}
 
-        <DateTimePickerModal
-          isVisible={isDatePickerVisible}
-          mode="date"
-          onConfirm={handleConfirm}
-          onCancel={() => setDatePickerVisible(false)}
-        />
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            onConfirm={handleConfirm}
+            onCancel={() => setDatePickerVisible(false)} // Close the modal on cancel
+          />
 
-        {/* Email */}
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter your email"
-          placeholderTextColor="black"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          style={styles.input}
-        />
+          {/* Email */}
+          <Text style={styles.label}>Emergency Contact Email</Text>
+          <TextInput
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setErrors((prev) => ({ ...prev, email: "" })); // Clear error on change
+            }}
+            placeholder="Enter your email"
+            placeholderTextColor="black"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            style={styles.input}
+          />
+          {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
 
-        {/* Country-phone number */}
-        <View>
-          <Text style={styles.label}>Enter Phone Number:</Text>
-          <View style={styles.inputContainer}>
-            {/* Country Picker */}
-            <TouchableOpacity
-              style={styles.countryPicker}
-              onPress={() => phoneInputRef.current?.focus()}
-            >
-              <CountryPicker
-                withCallingCode
-                withFlag
-                withFilter
-                withModal
-                countryCode={countryCode}
-                onSelect={(selectedCountry: Country) => {
-                  setCountryCode(selectedCountry.cca2 as CountryCode);
-                  setCallingCode(selectedCountry.callingCode?.[0] || callingCode);
+          {/* Country-phone number */}
+          <View>
+            <Text style={styles.label}>Enter Phone Number:</Text>
+            <View style={styles.inputContainer}>
+              {/* Country Picker */}
+              <TouchableOpacity
+                style={styles.countryPicker}
+                onPress={() => phoneInputRef.current?.focus()}
+              >
+                <CountryPicker
+                  withCallingCode
+                  withFlag
+                  withFilter
+                  withModal
+                  countryCode={countryCode}
+                  onSelect={(selectedCountry: Country) => {
+                    setCountryCode(selectedCountry.cca2 as CountryCode);
+                    setCallingCode(selectedCountry.callingCode?.[0] || callingCode);
+                  }}
+                />
+                <Text style={styles.callingCode}>+{callingCode}</Text>
+              </TouchableOpacity>
+
+              {/* Phone Number Input */}
+              <TextInput
+                ref={phoneInputRef}
+                style={styles.phoneInput}
+                placeholder="Enter phone number"
+                keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={(text) => {
+                  setPhoneNumber(text);
+                  setErrors((prev) => ({ ...prev, phoneNumber: "" })); // Clear error on change
                 }}
               />
-              <Text style={styles.callingCode}>+{callingCode}</Text>
-            </TouchableOpacity>
-
-            {/* Phone Number Input */}
-            <TextInput
-              ref={phoneInputRef}
-              style={styles.phoneInput}
-              placeholder="Enter phone number"
-              keyboardType="phone-pad"
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-            />
-          </View>
-        </View>
-
-        {/* Address */}
-        <Text style={styles.label}>Address</Text>
-        <TextInput
-          value={address}
-          onChangeText={setAddress}
-          placeholder="Enter your address"
-          placeholderTextColor="black"
-          multiline
-          numberOfLines={4}
-          style={[styles.textArea, { backgroundColor: '#FFFFFF' }]}
-        />
-
-        {/* Country */}
-        <Text style={styles.label}>Where do you live?</Text>
-        <TextInput
-          value={country}
-          onChangeText={setCountry}
-          placeholder="Enter your country"
-          placeholderTextColor="black"
-          style={styles.input}
-        />
-
-        {/* State */}
-        <Text style={styles.label}>State</Text>
-        <TextInput
-          value={state}
-          onChangeText={setState}
-          placeholder="Enter your state"
-          placeholderTextColor="black"
-          style={styles.input}
-        />
-
-        {/* District */}
-        <Text style={styles.label}>District</Text>
-        <TextInput
-          value={district}
-          onChangeText={setDistrict}
-          placeholder="Enter your district"
-          placeholderTextColor="black"
-          style={styles.input}
-        />
-
-        {/* Document Upload */}
-        {/* <View>
-          <Text style={styles.label}>Upload Aadhaar or License</Text>
-          <TouchableOpacity onPress={pickDocument} style={styles.uploadButton}>
-            <Text style={styles.uploadButtonText}>Choose File</Text>
-          </TouchableOpacity>
-
-          
-          {fileUri ? (
-            <View style={styles.uploadedFileContainer}>
-              <Text style={styles.uploadedFileName}>
-                {selectedFile?.assets[0].name}
-              </Text>
-              <TouchableOpacity
-                onPress={() => {
-                  setSelectedFile(undefined);
-                  setFileUri("");
-                }}
-                style={styles.removeButton}
-              >
-                <Text style={styles.removeButtonText}>Remove</Text>
-              </TouchableOpacity>
             </View>
-          ) : null}
-        </View> */}
+          </View>
+          {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
 
-        {/* Next Button */}
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.nextButton}
-            onPress={() => handleSubmit()}
-          >
-            <Text style={styles.nextButtonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+          {/* Address */}
+          <Text style={styles.label}>Address</Text>
+          <TextInput
+            value={address}
+            onChangeText={(text) => {
+              setAddress(text);
+              setErrors((prev) => ({ ...prev, address: "" })); // Clear error on change
+            }}
+            placeholder="Enter your address"
+            placeholderTextColor="black"
+            multiline
+            numberOfLines={4}
+            style={[styles.textArea, { backgroundColor: '#FFFFFF' }]}
+          />
+          {errors.address ? <Text style={styles.errorText}>{errors.address}</Text> : null}
+
+          {/* Country */}
+          <Text style={styles.label}>Where do you live?</Text>
+          <TextInput
+            value={country}
+            onChangeText={(text) => {
+              setCountry(text);
+              setErrors((prev) => ({ ...prev, country: "" })); // Clear error on change
+            }}
+            placeholder="Enter your country"
+            placeholderTextColor="black"
+            style={styles.input}
+          />
+          {errors.country ? <Text style={styles.errorText}>{errors.country}</Text> : null}
+
+          {/* State */}
+          <Text style={styles.label}>State</Text>
+          <TextInput
+            value={state}
+            onChangeText={(text) => {
+              setState(text);
+              setErrors((prev) => ({ ...prev, state: "" })); // Clear error on change
+            }}
+            placeholder="Enter your state"
+            placeholderTextColor="black"
+            style={styles.input}
+          />
+          {errors.state ? <Text style={styles.errorText}>{errors.state}</Text> : null}
+
+          {/* District */}
+          <Text style={styles.label}>District</Text>
+          <TextInput
+            value={district}
+            onChangeText={(text) => {
+              setDistrict(text);
+              setErrors((prev) => ({ ...prev, district: "" })); // Clear error on change
+            }}
+            placeholder="Enter your district"
+            placeholderTextColor="black"
+            style={styles.input}
+          />
+          {errors.district ? <Text style={styles.errorText}>{errors.district}</Text> : null}
+
+          {/* Document Upload */}
+          <View>
+            <Text style={styles.label}>Upload Aadhaar or License</Text>
+            <TouchableOpacity onPress={pickDocument} style={styles.uploadButton}>
+              <Text style={styles.uploadButtonText}>Choose File</Text>
+            </TouchableOpacity>
+            {errors.document ? <Text style={styles.errorText}>{errors.document}</Text> : null}
+
+            {fileUri ? (
+              <View style={styles.uploadedFileContainer}>
+                <Text style={styles.uploadedFileName}>
+                  {selectedFile?.assets?.[0]?.name}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedFile(null);
+                    setFileUri("");
+                  }}
+                  style={styles.removeButton}
+                >
+                  <Text style={styles.removeButtonText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Next Button */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.nextButton}
+              onPress={handleSubmit}
+              disabled={isLoading} // Disable button when loading
+            >
+              <Text style={styles.nextButtonText}>Next</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -352,15 +465,14 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     backgroundColor: "#FFFFFF",
     padding: 10,
-    // marginBottom: 15,
     borderRadius: 10,
     color: "black",
-    marginTop:10,
+    marginTop: 10,
   },
   textArea: {
     height: 80,
     textAlignVertical: "top",
-    marginTop:10,
+    marginTop: 10,
     borderWidth: 1,
     borderColor: "#FFFFFF",
     padding: 10,
@@ -371,7 +483,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 0,
-    marginTop:10,
+    marginTop: 10,
   },
   genderButton: {
     flex: 1,
@@ -416,7 +528,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 5,
     backgroundColor: "#FFFFFF",
-    marginTop:10,
+    marginTop: 10,
   },
   countryPicker: {
     flexDirection: "row",
@@ -448,6 +560,7 @@ const styles = StyleSheet.create({
   uploadedFileName: {
     fontSize: 16,
     color: "black",
+    width:"70%",
   },
   removeButton: {
     backgroundColor: "#3ECD7E",
@@ -459,4 +572,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "bold",
   },
+
+  // Error Text
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginTop: 5,
+  },
+
 });

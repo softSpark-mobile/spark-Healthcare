@@ -6,6 +6,10 @@ import axios from "axios";
 import { Entypo } from "@expo/vector-icons";
 import { BackendUrl } from "@/constants/backendUrl";
 import { completeOnboarding } from "../components/Redux/authSlice";
+import { router } from "expo-router";
+import { login } from "@/components/Redux/authSlice";
+import Loader from "@/components/Loader";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface DocumentUploadProps {
   label: string;
@@ -39,25 +43,32 @@ const DocumentUploader: React.FC<DocumentUploadProps> = ({
 }) => {
   return (
     <View style={styles.uploadContainer}>
-      <Pressable
-        onPress={() => pickDocument(onUpload)}
-        style={styles.uploadButton}
-      >
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.uploadText}>Upload</Text>
-      </Pressable>
-
+      <View>
+        <Pressable
+          onPress={() => pickDocument(onUpload)}
+          style={styles.uploadButton}
+        >
+          <Text style={styles.label}>{label}</Text>
+          <Text style={styles.uploadText}>Upload</Text>
+        </Pressable>
+      </View>
       {/* Show uploaded file and remove button */}
-      {uploadedFileName && (
-        <View style={styles.uploadedFileContainer}>
-          <Text style={styles.uploadedFileName}>
-            Uploaded: {uploadedFileName}
-          </Text>
-          <Pressable onPress={onRemove} style={styles.removeButton}>
-            <Text style={styles.removeButtonText}>Remove</Text>
-          </Pressable>
-        </View>
-      )}
+      <View>
+        {uploadedFileName && (
+          <View style={styles.uploadedFileContainer}>
+            <View style={styles.uploadedFileNameContainer}>
+              <Text style={styles.uploadedFileName} numberOfLines={1}>
+                Uploaded: {uploadedFileName}
+              </Text>
+            </View>
+            <View style={styles.removeButtonContainer}>
+              <Pressable onPress={onRemove} style={styles.removeButton}>
+                <Text style={styles.removeButtonText}>Remove</Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
+      </View>
     </View>
   );
 };
@@ -66,6 +77,8 @@ const DocumentUploader: React.FC<DocumentUploadProps> = ({
 const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
   const userData = useSelector((state) => state.auth);
   const dispatch = useDispatch();
+  // Loader
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [labReports, setLabReports] =
     useState<DocumentPicker.DocumentPickerAsset | null>(null);
@@ -91,7 +104,7 @@ const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
     console.log(imagingReports, "5");
     console.log(medicalPrescriptions, "6");
     console.log(labReports, "7");
-
+    setIsLoading(true);
     try {
       const formData = new FormData();
 
@@ -155,84 +168,95 @@ const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
           },
         }
       );
+      console.log("--------------------------");
+
+      console.log("Response is ", response.data);
 
       if (response.status === 200) {
-        dispatch(completeOnboarding());
+        // dispatch(completeOnboarding());
+        // await AsyncStorage.setItem("token", response.data.data);
+        dispatch(login(response.data.token));
       }
     } catch (error) {
       console.log(error, "error");
+    } finally {
+      setIsLoading(false); // Hide loader
     }
   };
 
   return (
     <View style={styles.fullScreenContainer}>
-      <ScrollView style={styles.scrollContainer}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Health History</Text>
+      {isLoading ? (
+        <Loader /> // Show loader when isLoading is true
+      ) : (
+        <ScrollView style={styles.scrollContainer}>
+          <View style={styles.container}>
+            <Text style={styles.title}>Health History</Text>
 
-          <DocumentUploader
-            label="Lab Reports (Diabetes)"
-            onUpload={setLabReports}
-            uploadedFileName={labReports?.name || null}
-            onRemove={() => setLabReports(null)}
-          />
-          <DocumentUploader
-            label="Medical Prescriptions"
-            onUpload={setMedicalPrescriptions}
-            uploadedFileName={medicalPrescriptions?.name || null}
-            onRemove={() => setMedicalPrescriptions(null)}
-          />
-          <DocumentUploader
-            label="Imaging Reports (X-rays, MRIs)"
-            onUpload={setImagingReports}
-            uploadedFileName={imagingReports?.name || null}
-            onRemove={() => setImagingReports(null)}
-          />
-          <DocumentUploader
-            label="Upload Blood Test Reports"
-            onUpload={setBloodTestReports}
-            uploadedFileName={bloodTestReports?.name || null}
-            onRemove={() => setBloodTestReports(null)}
-          />
-          <DocumentUploader
-            label="Upload Health Check-up Documents"
-            onUpload={setHealthCheckupDocuments}
-            uploadedFileName={healthCheckupDocuments?.name || null}
-            onRemove={() => setHealthCheckupDocuments(null)}
-          />
-          <DocumentUploader
-            label="Upload Prescription Documents"
-            onUpload={setPrescriptionDocuments}
-            uploadedFileName={prescriptionDocuments?.name || null}
-            onRemove={() => setPrescriptionDocuments(null)}
-          />
-          <DocumentUploader
-            label="Others"
-            onUpload={setOthers}
-            uploadedFileName={others?.name || null}
-            onRemove={() => setOthers(null)}
-          />
+            <DocumentUploader
+              label="Lab Reports (Diabetes)"
+              onUpload={setLabReports}
+              uploadedFileName={labReports?.name || null}
+              onRemove={() => setLabReports(null)}
+            />
+            <DocumentUploader
+              label="Medical Prescriptions"
+              onUpload={setMedicalPrescriptions}
+              uploadedFileName={medicalPrescriptions?.name || null}
+              onRemove={() => setMedicalPrescriptions(null)}
+            />
+            <DocumentUploader
+              label="Imaging Reports (X-rays, MRIs)"
+              onUpload={setImagingReports}
+              uploadedFileName={imagingReports?.name || null}
+              onRemove={() => setImagingReports(null)}
+            />
+            <DocumentUploader
+              label="Upload Blood Test Reports"
+              onUpload={setBloodTestReports}
+              uploadedFileName={bloodTestReports?.name || null}
+              onRemove={() => setBloodTestReports(null)}
+            />
+            <DocumentUploader
+              label="Upload Health Check-up Documents"
+              onUpload={setHealthCheckupDocuments}
+              uploadedFileName={healthCheckupDocuments?.name || null}
+              onRemove={() => setHealthCheckupDocuments(null)}
+            />
+            <DocumentUploader
+              label="Upload Prescription Documents"
+              onUpload={setPrescriptionDocuments}
+              uploadedFileName={prescriptionDocuments?.name || null}
+              onRemove={() => setPrescriptionDocuments(null)}
+            />
+            <DocumentUploader
+              label="Others"
+              onUpload={setOthers}
+              uploadedFileName={others?.name || null}
+              onRemove={() => setOthers(null)}
+            />
 
-          <View style={styles.buttonContainer}>
-            <Pressable
-              style={styles.prevButton}
-              onPress={() => setOnboardingFlag(1)}
-            >
-              <Entypo name="arrow-left" size={24} color="black" />
-            </Pressable>
-            <Pressable style={styles.nextButton} onPress={handleSubmit}>
-              <Text style={styles.nextButtonText}>Next</Text>
-            </Pressable>
+            <View style={styles.buttonContainer}>
+              <Pressable
+                style={styles.prevButton}
+                onPress={() => setOnboardingFlag(1)}
+              >
+                <Entypo name="arrow-left" size={24} color="black" />
+              </Pressable>
+              <Pressable style={styles.nextButton} onPress={handleSubmit}>
+                <Text style={styles.nextButtonText}>Next</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      )}
     </View>
   );
 };
 
 // Styles
 const styles = StyleSheet.create({
-   fullScreenContainer: {
+  fullScreenContainer: {
     flex: 1,
     backgroundColor: "#D8F5FF", // Full-screen background color
   },
@@ -247,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  uploadContainer: { marginBottom: 15 },
+  uploadContainer: { marginBottom: 15, width: "100%" },
   label: { fontSize: 16, fontWeight: "bold", color: "black", marginBottom: 5 },
   uploadButton: {
     backgroundColor: "#FFFFFF",
@@ -259,19 +283,36 @@ const styles = StyleSheet.create({
   uploadedFileContainer: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
     marginTop: 5,
     backgroundColor: "#f0f0f0",
-    padding: 8,
+    padding: 10,
     borderRadius: 5,
   },
-  uploadedFileName: { fontSize: 14, color: "black", flex: 1 },
+  uploadedFileNameContainer: {
+    width: "60%", // 60% width for the file name
+  },
+  uploadedFileName: {
+    fontSize: 14,
+    color: "black",
+    flexShrink: 1, // Allow text to shrink and wrap
+  },
+  removeButtonContainer: {
+    width: "40%", // 40% width for the remove button
+    alignItems: "flex-end", // Align button to the right
+  },
   removeButton: {
     backgroundColor: "#3ECD7E",
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 5,
   },
-  removeButtonText: { color: "white", fontSize: 14, fontWeight: "bold" },
+  removeButtonText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "bold",
+  },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
