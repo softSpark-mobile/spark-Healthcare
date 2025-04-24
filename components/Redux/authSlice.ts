@@ -44,6 +44,14 @@ const authSlice = createSlice({
     },
     logout: (state) => {
       state.isAuthenticated = false;
+      state.token = null;
+      state.isLoggedIn = null;
+      state.name = '';
+      state.userName = '';
+      state.email = '';
+      state.userId = '';
+      state.isOnboarding = false;
+      state.profilePhoto = '';
       state.screen = "login";
     },
     goToSignUp: (state) => {

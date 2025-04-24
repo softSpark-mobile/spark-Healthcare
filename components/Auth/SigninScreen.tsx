@@ -14,13 +14,14 @@ import { BackendUrl } from "../../constants/backendUrl";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from "@expo/vector-icons";
 import Loader from "../Loader";
+import CustomSpinner from "../CustomSpiner";
 
 interface SignUpScreenProps {
   setSignFlag: (value: boolean) => void;
 }
 
 export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [firstName, setFirstName] = useState<string>("");
   const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -30,6 +31,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isChecked, setIsChecked] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [serverError, setServerError] = useState<string>("");
 
   // Error states
   const [firstNameError, setFirstNameError] = useState<string>("");
@@ -44,6 +46,11 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
     return emailRegex.test(email);
   };
 
+  const handleTermsToggle = () => {
+    setIsChecked(!isChecked);
+    setTermsError(""); // Clear error when user interacts with checkbox
+  };
+
   const handleSignUp = async () => {
     // Reset all error messages
     setFirstNameError("");
@@ -52,39 +59,47 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
     setPasswordError("");
     setConfirmPasswordError("");
     setTermsError("");
+    setServerError("");
+
+    // Trim all input fields
+    const trimmedFirstName = firstName.trim();
+    const trimmedLastName = lastName.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
 
     let isValid = true;
 
-    if (!firstName) {
+    if (!trimmedFirstName) {
       setFirstNameError("First name is required.");
       isValid = false;
     }
 
-    if (!lastName) {
+    if (!trimmedLastName) {
       setLastNameError("Last name is required.");
       isValid = false;
     }
 
-    if (!email) {
+    if (!trimmedEmail) {
       setEmailError("Email is required.");
       isValid = false;
-    } else if (!validateEmail(email)) {
+    } else if (!validateEmail(trimmedEmail)) {
       setEmailError("Please enter a valid email address.");
       isValid = false;
     }
 
-    if (!password) {
+    if (!trimmedPassword) {
       setPasswordError("Password is required.");
       isValid = false;
-    } else if (password.length < 6) {
+    } else if (trimmedPassword.length < 6) {
       setPasswordError("Password must be at least 6 characters.");
       isValid = false;
     }
 
-    if (!confirmPassword) {
+    if (!trimmedConfirmPassword) {
       setConfirmPasswordError("Confirm password is required.");
       isValid = false;
-    } else if (password !== confirmPassword) {
+    } else if (trimmedPassword !== trimmedConfirmPassword) {
       setConfirmPasswordError("Passwords do not match.");
       isValid = false;
     }
@@ -101,39 +116,44 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
     setLoading(true);
     try {
       const data = {
-        FirstName: firstName,
-        LastName: lastName,
-        Email: email,
-        Password: confirmPassword,
+        FirstName: trimmedFirstName,
+        LastName: trimmedLastName,
+        Email: trimmedEmail,
+        Password: trimmedConfirmPassword,
+        isTermsCondition:isChecked
       };
-      console.log("---------------");
-     
+      console.log(data);
+      
       const response = await axios.post(`${BackendUrl}/api/user/CreateUser`, data);
-      console.log(response,'responce for signup')
       await AsyncStorage.setItem("token", response.data.data);
       dispatch(login(response.data.data));
-    } catch (error :any) {
-      if(axios.isAxiosError(error)){
-        const statusCode =error.response?.status;
-        const serverMessage =error.response?.data.message;
-        console.log(statusCode,"Status Code");
-        console.log(serverMessage,"message");
-        switch(statusCode){
+    } catch (error: any) {
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const serverMessage = error.response?.data?.message || "Something went wrong. Please try again later.";
+        
+        switch (statusCode) {
           case 409:
-            setEmailError(serverMessage)
+            setEmailError(serverMessage);
+            break;
+          case 500:
+            setServerError(serverMessage);
+            break;
+          default:
+            setServerError(serverMessage);
         }
-      } 
-    }
-    finally{
+      } else {
+        setServerError("An unexpected error occurred. Please try again.");
+      }
+    } finally {
       setLoading(false);
     }
-    
   };
 
   return (
     <View style={styles.container}>
       {loading ? (
-        <Loader />
+        <CustomSpinner />
       ) : (
         <>
           {/* Main Heading */}
@@ -223,7 +243,7 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
 
           {/* Terms and Conditions Checkbox */}
           <View style={styles.checkboxContainer}>
-            <TouchableOpacity onPress={() => setIsChecked(!isChecked)}>
+            <TouchableOpacity onPress={handleTermsToggle}>
               <Ionicons
                 name={isChecked ? "checkbox" : "square-outline"}
                 size={24}
@@ -238,6 +258,11 @@ export default function SignUpScreen({ setSignFlag }: SignUpScreenProps) {
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
             <Text style={styles.signUpButtonText}>Sign Up</Text>
           </TouchableOpacity>
+
+          {/* Server Error Message */}
+          {serverError ? (
+            <Text style={[styles.errorText, styles.serverError]}>{serverError}</Text>
+          ) : null}
 
           {/* Login Navigation Link */}
           <Text style={styles.link} onPress={() => setSignFlag(false)}>
@@ -338,5 +363,10 @@ const styles = StyleSheet.create({
     color: "red",
     fontSize: 14,
     marginBottom: 10,
+  },
+  serverError: {
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 16,
   },
 });

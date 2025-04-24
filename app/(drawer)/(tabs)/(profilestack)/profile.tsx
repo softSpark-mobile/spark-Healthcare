@@ -131,7 +131,7 @@ const ProfileScreen: React.FC = () => {
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
           <TouchableOpacity
             style={styles.saveButton}
-            onPress={() => router.push('/edit-profile')}
+            onPress={() => router.push('/updatePersonal')}
           >
             <Text style={styles.saveButtonText}>
               Edit Profile

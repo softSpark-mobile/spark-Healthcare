@@ -18,6 +18,17 @@ interface DocumentUploadProps {
   onRemove: () => void;
 }
 
+interface OnboardingThreeProps {
+  setOnboardingFlag: (value: Number) => void;
+}
+
+interface RootState {
+  auth: {
+    token: string;
+    // Add other auth state properties here as needed
+  };
+}
+
 // Function to pick a document
 const pickDocument = async (
   onUpload: (file: DocumentPicker.DocumentPickerAsset) => void
@@ -74,8 +85,8 @@ const DocumentUploader: React.FC<DocumentUploadProps> = ({
 };
 
 // OnboardingThree Component
-const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
-  const userData = useSelector((state) => state.auth);
+const OnboardingThree: React.FC<OnboardingThreeProps> = ({ setOnboardingFlag }) => {
+  const userData = useSelector((state: RootState) => state.auth);
   const dispatch = useDispatch();
   // Loader
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -97,100 +108,70 @@ const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
 
   // Handle form submission
   const handleSubmit = async () => {
-    console.log(others, "1");
-    console.log(prescriptionDocuments, "2");
-    console.log(healthCheckupDocuments, "3");
-    console.log(bloodTestReports, "4");
-    console.log(imagingReports, "5");
-    console.log(medicalPrescriptions, "6");
-    console.log(labReports, "7");
-    console.log(userData.token);
-    
     setIsLoading(true);
     try {
       const formData = new FormData();
-
-      if (labReports) {
-        formData.append("LabReport", {
-          uri: labReports.uri,
-          type: labReports.mimeType,
-          name: labReports.name,
-        });
-      }
-      if (medicalPrescriptions) {
-        formData.append("MedicalPrescription", {
-          uri: medicalPrescriptions.uri,
-          type: medicalPrescriptions.mimeType,
-          name: medicalPrescriptions.name,
-        });
-      }
-      if (imagingReports) {
-        formData.append("ScanReports", {
-          uri: imagingReports.uri,
-          type: imagingReports.mimeType,
-          name: imagingReports.name,
-        });
-      }
-      if (bloodTestReports) {
-        formData.append("BloodTestReports", {
-          uri: bloodTestReports.uri,
-          type: bloodTestReports.mimeType,
-          name: bloodTestReports.name,
-        });
-      }
-      if (healthCheckupDocuments) {
-        formData.append("HealthCheckUpReports", {
-          uri: healthCheckupDocuments.uri,
-          type: healthCheckupDocuments.mimeType,
-          name: healthCheckupDocuments.name,
-        });
-      }
-      if (prescriptionDocuments) {
-        formData.append("PrescriptionReports", {
-          uri: prescriptionDocuments.uri,
-          type: prescriptionDocuments.mimeType,
-          name: prescriptionDocuments.name,
-        });
-      }
-      if (others) {
-        formData.append("Others", {
-          uri: others.uri,
-          type: others.mimeType,
-          name: others.name,
-        });
-      }
-
+  
+      // Helper function to append files safely
+      const appendIfExists = (fieldName: string, file: DocumentPicker.DocumentPickerAsset | null) => {
+        if (file) {
+          // Create a proper file object for React Native
+          const fileObject = {
+            uri: file.uri,
+            type: file.mimeType || 'application/octet-stream', // fallback type
+            name: file.name || 'file',
+          };
+          formData.append(fieldName, fileObject as any);
+        }
+      };
+  
+      // Append files only if they exist
+      appendIfExists("LabReport", labReports);
+      appendIfExists("MedicalPrescription", medicalPrescriptions);
+      appendIfExists("ScanReports", imagingReports);
+      appendIfExists("BloodTestReports", bloodTestReports);
+      appendIfExists("HealthCheckUpReports", healthCheckupDocuments);
+      appendIfExists("PrescriptionReports", prescriptionDocuments);
+      appendIfExists("Others", others);
+  
+      // Check if any files were actually added
+      const anyFilesUploaded = [
+        labReports, 
+        medicalPrescriptions, 
+        imagingReports, 
+        bloodTestReports,
+        healthCheckupDocuments,
+        prescriptionDocuments,
+        others
+      ].some(file => file !== null);
+  
       const response = await axios.post(
         `${BackendUrl}/api/user/userDocumentUplaod`,
-        formData,
+        anyFilesUploaded ? formData : {}, // Send empty object if no files
         {
           headers: {
             Authorization: `Bearer ${userData.token}`,
-            "Content-Type": "multipart/form-data",
+            'Content-Type': anyFilesUploaded 
+              ? 'multipart/form-data' 
+              : 'application/json',
           },
         }
       );
-      console.log("--------------------------");
-
-      console.log("Response is ", response.data);
-
+  
       if (response.status === 200) {
-        // dispatch(completeOnboarding());
-        // await AsyncStorage.setItem("token", response.data.data);
         dispatch(login(response.data.token));
       }
-    } catch (error) {
-      console.log(error, "error");
-
+    } catch (error: any) {
+      console.log("Error details:", error.response?.data || error.message);
     } finally {
-      setIsLoading(false); // Hide loader
+      setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.fullScreenContainer}>
       {isLoading ? (
-        <Loader /> // Show loader when isLoading is true
+        <Loader /> 
       ) : (
         <ScrollView style={styles.scrollContainer}>
           <View style={styles.container}>
@@ -226,12 +207,12 @@ const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
               uploadedFileName={healthCheckupDocuments?.name || null}
               onRemove={() => setHealthCheckupDocuments(null)}
             />
-            <DocumentUploader
+            {/* <DocumentUploader
               label="Upload Prescription Documents"
               onUpload={setPrescriptionDocuments}
               uploadedFileName={prescriptionDocuments?.name || null}
               onRemove={() => setPrescriptionDocuments(null)}
-            />
+            /> */}
             <DocumentUploader
               label="Others"
               onUpload={setOthers}
@@ -239,17 +220,20 @@ const OnboardingThree: React.FC = ({ setOnboardingFlag }) => {
               onRemove={() => setOthers(null)}
             />
 
-            <View style={styles.buttonContainer}>
-              <Pressable
-                style={styles.prevButton}
-                onPress={() => setOnboardingFlag(1)}
-              >
-                <Entypo name="arrow-left" size={24} color="black" />
-              </Pressable>
-              <Pressable style={styles.nextButton} onPress={handleSubmit}>
-                <Text style={styles.nextButtonText}>Next</Text>
-              </Pressable>
-            </View>
+<View style={styles.buttonContainer}>
+          {/* Previous Button with Icon */}
+          <Pressable
+            style={styles.prevButton}
+            onPress={() => setOnboardingFlag(1)}
+          >
+            <Entypo name="arrow-left" size={24} color="black" />
+          </Pressable>
+
+          {/* Next Button with Text */}
+          <Pressable style={styles.nextButton} onPress={() => handleSubmit()}>
+            <Text style={styles.nextButtonText}>Next</Text>
+          </Pressable>
+        </View>
           </View>
         </ScrollView>
       )}

@@ -35,16 +35,13 @@ function MainApp() {
   if (!authState) {
     console.log("-----");
     return <SplashScreen />;
-  } 
-  else {
+  } else {
     if (!authss.token) {
       return <Auth />;
-    } 
-    else {
+    } else {
       if (authss.isOnboarding === false) {
         return <OnboardingScreen />;
-      } 
-      else {
+      } else {
         return (
           // <>
           //   <OnboardingScreen />
@@ -134,13 +131,21 @@ function MainApp() {
                 ),
               }}
             />
-            <Stack.Screen name="nearbyhospital"
-            options={{
-              headerTitle: "Near By hospital", // Set Header Title
-              headerShown: true,
-        
-            }} 
+            <Stack.Screen
+              name="nearbyhospital"
+              options={{
+                headerTitle: "Near By hospital", // Set Header Title
+                headerShown: true,
+              }}
             />
+            <Stack.Screen
+              name="scanner"
+              options={{
+                headerTitle: "Near By hospital", // Set Header Title
+                headerShown: true,
+              }}
+            />
+            <Stack.Screen name="phonenumber" />
           </Stack>
         );
       }

@@ -70,6 +70,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setSignFlag }) => {
 
       console.log("Login successful:", LoginResponse.data);
       await AsyncStorage.setItem("token", LoginResponse.data.token);
+      
       dispatch(login(LoginResponse.data.token));
     } catch (error: any) {
       if(axios.isAxiosError(error)){

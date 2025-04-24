@@ -25,7 +25,7 @@ const SleepTrackerModal: React.FC<SleepTrackerModalProps> = ({
   const numbers = Array.from({ length: 23 }, (_, i) => (1 + i * 0.5).toFixed(1));
   const [sleepHours, setSleepHours] = useState<string>(currentSleep.toFixed(1));
 
-  const initialIndex = numbers.indexOf(sleepHours);
+  const initialIndex = numbers?.indexOf(sleepHours);
 
   const handleValueChange = (value: string | undefined, index: number) => {
     if (value) {

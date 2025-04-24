@@ -57,7 +57,7 @@ const Settings = () => {
           <Feather name="help-circle" size={20} color="black" />
           <Text style={styles.headerText}>Help</Text>
         </View>
-        <Pressable style={styles.item} onPress={() => console.log("About Us")}>
+        <Pressable style={styles.item} onPress={() => router.push('/phonenumber')}>
           <Text style={styles.itemText}>About us</Text>
         </Pressable>
         <Pressable
@@ -68,7 +68,7 @@ const Settings = () => {
         </Pressable>
         <Pressable
           style={styles.item}
-          onPress={() => console.log("Privacy Policy")}
+          onPress={() => router.push('/scanner')}
         >
           <Text style={styles.itemText}>Privacy policy</Text>
         </Pressable>

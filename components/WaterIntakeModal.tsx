@@ -28,7 +28,7 @@ const WaterIntakeModal: React.FC<WaterIntakeModalProps> = ({
   );
   const [litres, setLitres] = useState<string>(currentIntake.toFixed(1));
 
-  const initialIndex = numbers.indexOf(litres);
+  const initialIndex = numbers?.indexOf(litres);
 
   const handleValueChange = (value: string | undefined, index: number) => {
     if (value) {

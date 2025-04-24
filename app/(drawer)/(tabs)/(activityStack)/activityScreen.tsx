@@ -151,7 +151,10 @@ const ActivityScreen: React.FC = () => {
   const [selectedMeal, setSelectedMeal] = useState<string>("Breakfast");
   const [showFoodList, setShowFoodList] = useState<boolean>(false); // State to control food list visibility
   const totalCalories =
-    foodData[selectedMeal]?.reduce((sum:number, food) => sum + food.calories, 0) || 0;
+    foodData[selectedMeal]?.reduce(
+      (sum: number, food:any) => sum + food.calories,
+      0
+    ) || 0;
 
   const handleDonePress = (foodName: string) => {
     console.log(`${foodName} marked as done!`);
@@ -420,7 +423,6 @@ const ActivityScreen: React.FC = () => {
                   style={styles.actualFoodInput}
                   placeholder={`Enter food for ${actualMeal}`}
                   value={foodInput}
-                  maxLength={100}
                   onChangeText={(text: string) => setFoodInput(text)}
                 />
               )}
@@ -466,31 +468,61 @@ const ActivityScreen: React.FC = () => {
                   </View>
                 </View>
 
-                {/* Total Calories */}
-                <Text style={styles.totalCalories}>
-                  Total Calories: {totalCalories} kcal
-                </Text>
-
                 {/* Food List */}
                 <View>
-                  {foodData[selectedMeal].map((item) => (
+                  {foodData[selectedMeal].map((item:any) => (
                     <View key={item.id} style={styles.foodItem}>
-                      <Image source={item.image} style={styles.foodImage} />
-                      <View style={styles.foodInfoContainer}>
-                        <Text style={styles.foodName}>{item.name}</Text>
-                        <Text>Calories: {item.calories} kcal</Text>
-                        <Text>
-                          Fat: {item.fat} g | Protein: {item.protein} g | Carbs:{" "}
-                          {item.carbs} g
-                        </Text>
-
-                        {/* ✅ Done Button at Bottom of Card */}
+                      <View
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Image source={item.image} style={styles.foodImage} />
+                        <View style={styles.foodInfoContainer}>
+                          <Text style={styles.foodName}>{item.name}</Text>
+                          <Text>Calories: {item.calories} kcal</Text>
+                        </View>
                         <TouchableOpacity
                           style={styles.foodDoneButton}
                           onPress={() => handleDonePress(item.name)}
                         >
                           <Text style={styles.foodDoneButtonText}>Done</Text>
                         </TouchableOpacity>
+                      </View>
+                      <View
+                        style={{
+                          display: "flex",
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          marginTop: 10,
+                        }}
+                      >
+                        <View style={styles.texts}>
+                          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+                            {" "}
+                            {item.protein} g
+                          </Text>
+
+                          <Text>Protein</Text>
+                        </View>
+
+                        <View style={styles.texts}>
+                          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+                            {item.fat} g
+                          </Text>
+
+                          <Text>Fat</Text>
+                        </View>
+
+                        <View style={styles.texts}>
+                          <Text style={{ fontWeight: "bold", fontSize: 18 }}>
+                            {item.carbs} g
+                          </Text>
+
+                          <Text>Carbs</Text>
+                        </View>
                       </View>
                     </View>
                   ))}
@@ -514,6 +546,12 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     marginVertical: 10,
     paddingLeft: 20,
+  },
+  texts: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    marginTop: 10,
   },
   monthHeaderButton: {
     backgroundColor: "#00318D",
@@ -757,7 +795,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 5,
     elevation: 3,
-    flexDirection: "row",
+    // flexDirection: "row",
   },
   foodInfoContainer: {
     flex: 1,

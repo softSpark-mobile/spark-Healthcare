@@ -4,15 +4,39 @@ import {
   Text, 
   Image, 
   Pressable, 
-  StyleSheet 
+  StyleSheet, 
+  Alert
 } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-
+import { useDispatch, useSelector } from "react-redux";
+import { logout } from "@/components/Redux/authSlice";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { RootState } from "./Redux/store";
 const DrawerList: React.FC = () => {
   const router = useRouter();
-
+  const dispatch = useDispatch();
+  const authss = useSelector((state: RootState) => state.auth);
+  const handleLogout = () => {
+    console.log(authss);
+    
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async() => {
+          await AsyncStorage.removeItem("token")
+          dispatch(logout()); // Clears token, isAuthenticated, etc.
+          console.log(dispatch(logout()),'hhhhhh');
+        },
+      },
+    ]);
+  };
   return (
     <DrawerContentScrollView contentContainerStyle={styles.container}>
       {/* Profile Section */}
@@ -34,7 +58,7 @@ const DrawerList: React.FC = () => {
         <MenuItem label="Activity" icon="bar-chart" onPress={() => router.push("/(drawer)/(tabs)/(activityStack)/activityScreen")} />
         <MenuItem label="Profile" icon="user" onPress={() => router.push("/(drawer)/(tabs)/(profilestack)/profile")} />
         <MenuItem label="Map" icon="map-pin" onPress={() => router.push("/nearbyhospital")} />
-        <MenuItem label="Logout" icon="log-out" onPress={() => console.log("Logging Out")} isLogout />
+        <MenuItem label="Logout" icon="log-out" onPress={() => handleLogout()} isLogout />
       </View>
     </DrawerContentScrollView>
   );

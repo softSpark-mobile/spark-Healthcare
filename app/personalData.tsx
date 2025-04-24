@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import {
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../components/Redux/store";
-import { goToOnboardingTwo, login } from "../components/Redux/authSlice";
+import { login } from "../components/Redux/authSlice";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GetCountries, GetState, GetCity } from "react-country-state-city";
@@ -21,12 +21,9 @@ import { FontAwesome } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { jwtDecode } from "jwt-decode";
 import { BackendUrl } from "@/constants/backendUrl";
-import PhoneInput, {
-  ICountry,
-  isValidPhoneNumber,
-} from "react-native-international-phone-number";
+import PhoneInput from "react-native-phone-number-input";
 
-interface Country {
+interface CountryData {
   id: number;
   name: string;
   isoCode?: string;
@@ -64,17 +61,21 @@ export default function OnboardingOne({
   const [fullName, setFullName] = useState<string>("");
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisible] = useState<boolean>(false);
-  const [gender, setGender] = useState<string | null>(null);
   const [address, setAddress] = useState<string>("");
-  const [emergencyPhoneNumber, setEmergencyPhoneNumber] = useState<string>("");
-  const [selectedEmergencyCountry, setSelectedEmergencyCountry] =
-    useState<null | ICountry>(null);
+  const [gender, setGender] = useState<string>("");
+
+  // Phone Input
+  const phoneInput = useRef<PhoneInput>(null);
+  const [formattedEmergencyPhoneNumber, setFormattedEmergencyPhoneNumber] = useState("");
+  const [emergencyPhoneNumber, setEmergencyPhoneNumber] = useState("");
+  const [countryCode, setCountryCode] = useState<string>("IN");
+  const [callingCode, setCallingCode] = useState("91");
 
   // Location Selection
   const [countryid, setCountryid] = useState<number | null>(null);
   const [stateid, setStateid] = useState<number | null>(null);
   const [cityid, setCityid] = useState<number | null>(null);
-  const [countryList, setCountryList] = useState<Country[]>([]);
+  const [countryList, setCountryList] = useState<CountryData[]>([]);
   const [stateList, setStateList] = useState<State[]>([]);
   const [cityList, setCityList] = useState<City[]>([]);
   const [country, setCountry] = useState<string>("");
@@ -94,49 +95,119 @@ export default function OnboardingOne({
     emergencyPhone: "",
   });
 
-  // Loader state
+  // Loader states
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isLoadingCountries, setIsLoadingCountries] = useState<boolean>(true);
+  const [isLoadingUserData, setIsLoadingUserData] = useState<boolean>(true);
 
-  // Load user data from token
-  const loadUserData = async () => {
-    const token = await AsyncStorage.getItem("token");
-    if (token) {
-      const decoded = jwtDecode<CustomJwtPayload>(token);
-      setFullName(decoded.userName);
-    }
-  };
-
+  // Load countries and user data
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  // Fetch countries on mount
-  useEffect(() => {
-    const fetchCountries = async () => {
+    const fetchData = async () => {
       try {
         setIsLoadingCountries(true);
         const countries = await GetCountries();
-
+        
         if (countries && countries.length > 0) {
-          const formattedCountries = countries.map((country: any) => ({
-            id: country.id,
-            name: country.name,
-            isoCode: country.isoCode,
+          const formattedCountries = countries.map((data: any) => ({
+            id: data?.id,
+            name: data?.name,
+            isoCode: data?.isoCode,
           }));
           setCountryList(formattedCountries);
-        } else {
-          console.warn("No countries returned from API");
+          await loadUserData(formattedCountries);
         }
       } catch (error) {
-        console.error("Error fetching countries:", error);
-        Alert.alert("Error", "Failed to load countries. Please try again.");
+        console.error("Error:", error);
       } finally {
         setIsLoadingCountries(false);
       }
     };
-    fetchCountries();
+    
+    fetchData();
   }, []);
+
+  const loadUserData = async (countries: CountryData[]) => {
+    try {
+      setIsLoadingUserData(true);
+      const token = await AsyncStorage.getItem("token");
+      if (token) {
+        const decoded = jwtDecode<CustomJwtPayload>(token);
+        setFullName(decoded.userName);
+
+        const response = await axios.get(`${BackendUrl}/api/user/getUserByUserId/${userData.userId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log(response?.data.data,'ggggggggggg');
+        
+        if (response?.data.data) {
+          const userData = response.data.data;
+          setFullName(userData.Name || decoded.userName);
+          setGender(userData.Gender || "");
+          setAddress(userData.Address || "");
+          
+          if (userData.DOB) {
+            setDateOfBirth(new Date(userData.DOB));
+          }
+          
+          // Handle phone number and country code
+          if (userData.PhoneNo) {
+            setEmergencyPhoneNumber(userData.PhoneNo);
+          }
+          
+          if (userData.CountryCode) {
+            // Remove '+' if present and set calling code
+            const code = userData.CountryCode.replace('+', '');
+            setCallingCode(code);
+            
+            // Find country by calling code
+            const foundCountry = countries.find(c => 
+              phoneInput.current?.getCallingCode() === code
+            );
+            if (foundCountry?.isoCode) {
+              setCountryCode(foundCountry.isoCode);
+            }
+          }
+          console.log(emergencyPhoneNumber,countryCode,"iiiiiiiiii");
+          
+          // Set country and state from API response
+          if (userData.Country) {
+            setCountry(userData.Country);
+            const foundCountry = countries.find(c => c.name === userData.Country);
+            if (foundCountry) {
+              setCountryid(foundCountry.id);
+              const states = await GetState(foundCountry.id);
+              setStateList(states || []);
+              
+              if (userData.State) {
+                setState(userData.State);
+                const foundState = states.find(s => s.name === userData.State);
+                if (foundState) {
+                  setStateid(foundState.id);
+                  const cities = await GetCity(foundCountry.id, foundState.id);
+                  setCityList(cities || []);
+                  
+                  if (userData.City) {
+                    setCity(userData.City);
+                    const foundCity = cities.find(c => c.name === userData.City);
+                    if (foundCity) {
+                      setCityid(foundCity.id);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user data:", error);
+    } finally {
+      setIsLoadingUserData(false);
+    }
+  };
 
   // Handle country selection
   const handleCountryChange = async (countryId: number) => {
@@ -215,22 +286,6 @@ export default function OnboardingOne({
     setErrors((prev) => ({ ...prev, dateOfBirth: "" }));
   };
 
-  // Handle emergency phone number change
-  const handleEmergencyPhoneChange = (value: string) => {
-    setEmergencyPhoneNumber(value);
-    if (errors.emergencyPhone) {
-      setErrors((prev) => ({ ...prev, emergencyPhone: "" }));
-    }
-  };
-
-  // Handle emergency country change
-  const handleEmergencyCountryChange = (country: ICountry) => {
-    setSelectedEmergencyCountry(country);
-    if (errors.emergencyPhone) {
-      setErrors((prev) => ({ ...prev, emergencyPhone: "" }));
-    }
-  };
-
   // Form validation
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -241,11 +296,12 @@ export default function OnboardingOne({
     if (!address.trim()) newErrors.address = "Address is required.";
     if (!countryid) newErrors.country = "Country is required.";
     if (!stateid) newErrors.state = "State is required.";
+
     if (!emergencyPhoneNumber.trim()) {
       newErrors.emergencyPhone = "Emergency phone number is required.";
     } else if (
-      !selectedEmergencyCountry ||
-      !isValidPhoneNumber(emergencyPhoneNumber, selectedEmergencyCountry)
+      phoneInput.current &&
+      !phoneInput.current?.isValidNumber(emergencyPhoneNumber)
     ) {
       newErrors.emergencyPhone = "Please enter a valid phone number.";
     }
@@ -258,8 +314,10 @@ export default function OnboardingOne({
   const handleSubmit = async () => {
     if (!validateForm()) return;
     setIsLoading(true);
-
+    
     try {
+      const currentCallingCode = phoneInput.current?.getCallingCode() || callingCode;
+      const localPhone = emergencyPhoneNumber.trim();      
       const data = {
         Name: fullName,
         DOB: dateOfBirth?.toISOString() || "",
@@ -268,9 +326,8 @@ export default function OnboardingOne({
         Country: country || "",
         State: state || "",
         City: city || "",
-        EmergencyPhone: selectedEmergencyCountry
-          ? `+${selectedEmergencyCountry.callingCode} ${emergencyPhoneNumber}`
-          : emergencyPhoneNumber,
+        CountryCode: `+${currentCallingCode}`,
+        PhoneNo: localPhone || "",
       };
 
       const response = await axios.put(
@@ -295,6 +352,10 @@ export default function OnboardingOne({
     }
   };
 
+  if (isLoadingUserData) {
+    return <Loader />;
+  }
+
   return (
     <View style={styles.container}>
       {isLoading ? (
@@ -310,7 +371,6 @@ export default function OnboardingOne({
             placeholder="Enter your full name"
             placeholderTextColor="#666"
             autoCapitalize="words"
-            editable={false}
             value={fullName}
             onChangeText={(text) => {
               setFullName(text);
@@ -406,17 +466,29 @@ export default function OnboardingOne({
           <Text style={styles.label}>Emergency Number (Parents/Guardians)</Text>
           <View style={styles.phoneInputContainer}>
             <PhoneInput
-              value={emergencyPhoneNumber}
-              onChangePhoneNumber={handleEmergencyPhoneChange}
-              selectedCountry={selectedEmergencyCountry}
-              onChangeSelectedCountry={handleEmergencyCountryChange}
-              placeholder="Enter emergency phone number"
-              phoneInputStyles={{
-                container: styles.phoneInput,
-                flagContainer: styles.flagContainer,
-                callingCode: styles.callingCode,
-                input: styles.phoneNumberInput,
+              ref={phoneInput}
+              defaultValue={emergencyPhoneNumber}
+              defaultCode={countryCode as any}
+              
+              layout="first"
+              onChangeText={setEmergencyPhoneNumber}
+              onChangeFormattedText={setFormattedEmergencyPhoneNumber}
+              onChangeCountry={(country) => {
+                setCountryCode(country.cca2);
+                setCallingCode(country.callingCode[0]);
               }}
+              textInputProps={{
+                keyboardType: "phone-pad",
+                placeholder: "Enter phone number",
+              }}
+              containerStyle={styles.phoneContainer}
+              textContainerStyle={styles.phoneTextContainer}
+              countryPickerButtonStyle={styles.countryPickerButton}
+              textInputStyle={styles.phoneTextInput}
+              codeTextStyle={styles.codeText}
+              withDarkTheme={false}
+              withShadow={false}
+              autoFocus={false}
             />
           </View>
           {errors.emergencyPhone && (
@@ -439,7 +511,7 @@ export default function OnboardingOne({
                 }}
                 dropdownIconColor="#000"
               >
-                <Picker.Item label="Select Country" value={null} color="#666" />
+                <Picker.Item label={country || "Select Country"} value={countryid || null} color={countryid ? "#000" : "#666"} />
                 {countryList.map((country) => (
                   <Picker.Item
                     key={country.id}
@@ -469,7 +541,7 @@ export default function OnboardingOne({
               enabled={!!countryid && !isLoading}
               dropdownIconColor="#000"
             >
-              <Picker.Item label="Select State" value={null} color="#666" />
+              <Picker.Item label={state || "Select State"} value={stateid || null} color={stateid ? "#000" : "#666"} />
               {stateList.map((state) => (
                 <Picker.Item
                   key={state.id}
@@ -483,7 +555,7 @@ export default function OnboardingOne({
           {errors.state && <Text style={styles.errorText}>{errors.state}</Text>}
 
           {/* City Selection */}
-          {cityList.length > 0 && (
+          {/* {cityList.length > 0 && (
             <>
               <Text style={styles.label}>City</Text>
               <View style={styles.pickerContainer}>
@@ -498,7 +570,7 @@ export default function OnboardingOne({
                   enabled={!!stateid && !isLoading}
                   dropdownIconColor="#000"
                 >
-                  <Picker.Item label="Select City" value={null} color="#666" />
+                  <Picker.Item label={city || "Select City"} value={cityid || null} color={cityid ? "#000" : "#666"} />
                   {cityList.map((city) => (
                     <Picker.Item
                       key={city.id}
@@ -510,7 +582,7 @@ export default function OnboardingOne({
                 </Picker>
               </View>
             </>
-          )}
+          )} */}
 
           {/* Next Button */}
           <View style={styles.buttonContainer}>
@@ -645,33 +717,30 @@ const styles = StyleSheet.create({
   },
   phoneInputContainer: {
     marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#FFFFFF",
+    width: "100%",
+  },
+  phoneContainer: {
+    width: "100%",
     borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-    overflow: "hidden",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    elevation: 0,
+    shadowColor: "transparent",
   },
-  phoneInput: {
-    flexDirection: "row",
-    alignItems: "center",
+  phoneTextContainer: {
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  countryPickerButton: {
+    borderTopLeftRadius: 10,
+    borderBottomLeftRadius: 10,
+    backgroundColor: "#fff",
+  },
+  phoneTextInput: {
+    color: 'black',
     height: 50,
-    borderColor: "#FFFFFF",
   },
-  flagContainer: {
-    width: 120,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  callingCode: {
-    color: "black",
-    // marginRight: 5,
-    marginLeft:-5,
-    fontSize:15,
-  },
-  phoneNumberInput: {
-    flex: 1,
-    color: "black",
-    height: "100%",
-    fontSize:15
+  codeText: {
+    color: 'black',
   },
 });
