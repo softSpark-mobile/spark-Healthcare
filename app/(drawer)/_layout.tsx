@@ -32,20 +32,6 @@ export default function Layout() {
               >
                 <Ionicons name="settings-outline" size={24} color="black" />
               </TouchableOpacity>
-
-              {/* Small Profile Picture */}
-              <TouchableOpacity onPress={()=> router.push('/(drawer)/(tabs)/(profilestack)/profile')}>
-                <Image
-                  source={require("@/assets/images/profile.png")}
-                  style={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    borderWidth: 1,
-                    borderColor: "#ccc",
-                  }}
-                />
-              </TouchableOpacity>
             </View>
           ),
         }}

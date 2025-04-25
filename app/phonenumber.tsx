@@ -1,118 +1,62 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import React, { useRef, useState, useEffect } from "react";
+import { View } from "react-native";
+import PhoneInput from "react-native-phone-number-input";
+import { getCountryCallingCode, getCountries } from "libphonenumber-js";
 
-const FidgetSpinnerLoader = () => {
-  const rotation = useSharedValue(0);
+// Utility to map dial code to ISO country code
+const getCountryFromDialCode = (dialCode: string): string => {
+  const cleanCode = dialCode.replace("+", "");
+
+  // Fix ambiguous dial codes manually if needed
+  if (cleanCode === "1") return "US";
+  if (cleanCode === "65") return "SG";
+  if (cleanCode === "91") return "IN";
+
+  const countries = getCountries();
+  return (
+    countries.find(
+      (countryCode) => getCountryCallingCode(countryCode) === cleanCode
+    ) || "US"
+  );
+};
+
+const PhoneNumber = () => {
+  const phoneInput = useRef<PhoneInput>(null);
+  const [emergencyNumber, setEmergencyNumber] = useState("1234567");
+  const [defaultCode, setDefaultCode] = useState<string | null>(null);
+
+  // Simulated backend data — only country code
+  const backendData = {
+    countryCode: "+65", // You can change this to +91, +65, etc.
+  };
 
   useEffect(() => {
-    rotation.value = withRepeat(
-      withTiming(360, {
-        duration: 1200,
-        easing: Easing.linear,
-      }),
-      -1
-    );
+    const code = getCountryFromDialCode(backendData.countryCode);
+    setDefaultCode(code); // e.g., "US"
   }, []);
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${rotation.value}deg` }],
-  }));
+  if (!defaultCode) return null;
 
   return (
-    <View style={styles.container}>
-      <Animated.View style={[styles.spinner, animatedStyle]}>
-        {/* Center bearing */}
-        <View style={styles.centerBearing}>
-          <View style={styles.bearingInner} />
-        </View>
-        
-        {/* Three spinner arms */}
-        <View style={[styles.arm, styles.arm1]} />
-        <View style={[styles.arm, styles.arm2]} />
-        <View style={[styles.arm, styles.arm3]} />
-        
-        {/* Three weights */}
-        <View style={[styles.weight, styles.weight1]} />
-        <View style={[styles.weight, styles.weight2]} />
-        <View style={[styles.weight, styles.weight3]} />
-      </Animated.View>
+    <View style={{ marginTop: 40, paddingHorizontal: 20 }}>
+      <PhoneInput
+        ref={phoneInput}
+        defaultValue={emergencyNumber}
+        defaultCode={defaultCode as any}
+        layout="first"
+        onChangeFormattedText={(text) => setEmergencyNumber(text)}
+        withShadow
+        containerStyle={{
+          borderRadius: 10,
+          backgroundColor: "#f9f9f9",
+        }}
+        textContainerStyle={{
+          borderRadius: 10,
+          backgroundColor: "#f9f9f9",
+        }}
+      />
     </View>
   );
 };
 
-export default FidgetSpinnerLoader;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spinner: {
-    width: 200,
-    height: 200,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerBearing: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#fff',
-    borderWidth: 8,
-    borderColor: '#95a5a6',
-    position: 'absolute',
-    zIndex: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bearingInner: {
-    width: 15,
-    height: 15,
-    borderRadius: 7.5,
-    backgroundColor: '#e74c3c',
-  },
-  arm: {
-    position: 'absolute',
-    width: 80,
-    height: 20,
-    backgroundColor: '#7f8c8d',
-    borderRadius: 10,
-  },
-  arm1: {
-    transform: [{ rotate: '0deg' }, { translateY: -40 }],
-  },
-  arm2: {
-    transform: [{ rotate: '120deg' }, { translateY: -40 }],
-  },
-  arm3: {
-    transform: [{ rotate: '240deg' }, { translateY: -40 }],
-  },
-  weight: {
-    position: 'absolute',
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
-    borderWidth: 3,
-    borderColor: '#2c3e50',
-    backgroundColor: '#34495e',
-  },
-  weight1: {
-    transform: [{ translateY: -90 }],
-  },
-  weight2: {
-    transform: [{ rotate: '120deg' }, { translateY: -90 }],
-  },
-  weight3: {
-    transform: [{ rotate: '240deg' }, { translateY: -90 }],
-  },
-});
+export default PhoneNumber;

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { 
   View, 
   Text, 
@@ -8,16 +8,54 @@ import {
   Alert
 } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/components/Redux/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { RootState } from "./Redux/store";
+import axios from "axios";
+import { BackendUrl } from "@/constants/backendUrl";
 const DrawerList: React.FC = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const authss = useSelector((state: RootState) => state.auth);
+  const userData = useSelector((state: RootState) => state.auth);
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  useFocusEffect(() => {
+    fetchUserProfile();
+  }, );
+
+  const fetchUserProfile = async () => {
+   
+    try {
+      const response = await axios.get(
+        `${BackendUrl}/api/user/getUserByUserId/${userData.userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${userData.token}`,
+          },
+        }
+      );
+      console.log(response?.data.data,'userData');
+      
+     
+      // setProfilePicture(user.profileImage || null);
+      setName(response?.data.data.Name || "");
+      setEmail(response?.data.data.Email || "");
+    } catch (error: any) {
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Failed to fetch profile"
+      );
+      console.error("Profile fetch error:", error);
+    } finally {
+     
+    }
+  };
+
   const handleLogout = () => {
     console.log(authss);
     
@@ -37,6 +75,8 @@ const DrawerList: React.FC = () => {
       },
     ]);
   };
+
+
   return (
     <DrawerContentScrollView contentContainerStyle={styles.container}>
       {/* Profile Section */}
@@ -47,8 +87,8 @@ const DrawerList: React.FC = () => {
             style={styles.profileImage}
           />
         </View>
-        <Text style={styles.userName}>John Doe</Text>
-        <Text style={styles.userEmail}>johnjisiaj@gmail.com</Text>
+        <Text style={styles.userName}>{name}</Text>
+        <Text style={styles.userEmail}>{email}</Text>
       </View>
 
       {/* Drawer Items */}

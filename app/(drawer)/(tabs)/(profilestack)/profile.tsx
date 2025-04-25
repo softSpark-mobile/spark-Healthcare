@@ -7,60 +7,67 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ScrollView,
 } from "react-native";
 import axios from "axios";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { BackendUrl } from "@/constants/backendUrl";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { jwtDecode } from "jwt-decode";
 import { CustomJwtPayload } from "@/app/personalData";
+import { useSelector } from "react-redux";
+import { RootState } from "@/components/Redux/store";
 
 const ProfileScreen: React.FC = () => {
-  const [name, setName] = useState<string>("John Doe");
-  const [email, setEmail] = useState<string>("johndoe@example.com");
-  const [password, setPassword] = useState<string>("********");
-  const [dob, setDob] = useState<string>("1990-01-01");
-  const [country, setCountry] = useState<string>("United States");
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [dob, setDob] = useState<string>("");
+  const [age, setAge] = useState<Number>(0);
+  const [country, setCountry] = useState<string>("");
+  const [state, setState] = useState<string>("");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
+  const userData = useSelector((state: RootState) => state.auth);
 
-  
-  const getProfileData = async () => {
-    // try {
-    //   const token = await AsyncStorage.getItem("token");
-  
-    //   if (!token) {
-    //     console.error("No token found");
-    //     return;
-    //   }
-  
-    //   const decoded = jwtDecode(token);
-    //   console.log(decoded, "decode");
-  
-    //   const response = await axios.get(
-    //     `${BackendUrl}/api/user/getUserByUserId/${decoded.userId}`,
-    //     {
-    //       headers: {
-    //         Accept: "application/json",
-    //         Authorization: `Bearer ${token}`,
-    //         PlatForm: currentPlatform,
-    //       },
-    //     }
-    //   );
-  
-    //   console.log(response.data, "user");
-    // } catch (error) {
-    //   console.error("Error fetching user data:", error);
-    // }
-  }
-  
-  useEffect(() => {
-    getProfileData()
-  }, []);
+  useFocusEffect(() => {
+    getUserProfile();
+  });
+
+  const getUserProfile = async () => {
+    try {
+      const response = await axios.get(
+        `${BackendUrl}/api/user/getUserByUserId/${userData.userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${userData.token}`,
+          },
+        }
+      );
+      console.log("API Response:", response?.data.data.Age);
+      setName(response?.data.data.Name);
+      setEmail(response?.data.data.Email);
+      // Format DOB to show only YYYY-MM-DD
+      if (response?.data.data.DOB) {
+        const formattedDob = response?.data.data.DOB.split("T")[0];
+        setDob(formattedDob);
+      }
+      setAge(response?.data.data.Age || 0);
+      setCountry(response?.data.data.Country);
+      setState(response?.data.data.State);
+      console.log(age, "age");
+    } catch (error: any) {
+      console.error(
+        "Server responded with error status:",
+        error.response?.status
+      );
+      console.error("Error data:", error.response?.data);
+    }
+  };
 
   return (
     <View style={styles.container}>
+      <ScrollView>
       {/* Cover Photo (Click to change - Disabled) */}
       <View style={styles.coverContainer}>
         <Image
@@ -93,6 +100,7 @@ const ProfileScreen: React.FC = () => {
           value={name}
           onChangeText={setName}
           editable={isEditing}
+          placeholder="Enter your name"
         />
 
         <Text style={styles.label}>Email</Text>
@@ -101,6 +109,7 @@ const ProfileScreen: React.FC = () => {
           value={email}
           onChangeText={setEmail}
           editable={isEditing}
+          placeholder="Enter your email"
         />
 
         <Text style={styles.label}>Date of Birth</Text>
@@ -109,23 +118,35 @@ const ProfileScreen: React.FC = () => {
           value={dob}
           onChangeText={setDob}
           editable={isEditing}
+          placeholder="YYYY-MM-DD"
         />
 
-        <Text style={styles.label}>Country/Region</Text>
+        <Text style={styles.label}>Age</Text>
+        <TextInput
+          style={styles.input}
+          value={age.toString()} // Convert number to string
+          onChangeText={(text) => setAge(Number(text) || 0)} // Convert back to number
+          editable={isEditing}
+          placeholder="Age"
+          keyboardType="numeric"
+        />
+
+        <Text style={styles.label}>Country</Text>
         <TextInput
           style={styles.input}
           value={country}
           onChangeText={setCountry}
           editable={isEditing}
+          placeholder="Enter your country"
         />
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>State</Text>
         <TextInput
           style={styles.input}
-          value={password}
-          onChangeText={setPassword}
+          value={state}
+          onChangeText={setState}
           editable={isEditing}
-          secureTextEntry
+          placeholder="Enter your state"
         />
 
         <View style={{ flexDirection: "row", justifyContent: "center" }}>
@@ -133,32 +154,31 @@ const ProfileScreen: React.FC = () => {
             style={styles.saveButton}
             onPress={() => router.push('/updatePersonal')}
           >
-            <Text style={styles.saveButtonText}>
-              Edit Profile
-            </Text>
+            <Text style={styles.saveButtonText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
       </View>
+      </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff" },
-  coverContainer: { 
-    width: "100%", 
-    height: 150, 
-    justifyContent: "center", 
-    alignItems: "center" 
+  coverContainer: {
+    width: "100%",
+    height: 150,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  coverImage: { 
-    width: "100%", 
-    height: "100%", 
-    resizeMode: "cover" 
+  coverImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   profilePictureContainer: {
     position: "absolute",
-    top: 85, // Adjust this value to position the profile picture correctly
+    top: 85,
     alignSelf: "center",
     alignItems: "center",
     justifyContent: "center",
@@ -170,15 +190,15 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "#fff",
   },
-  detailsContainer: { 
-    marginTop: 50, 
-    paddingHorizontal: 20 
+  detailsContainer: {
+    marginTop: 50,
+    paddingHorizontal: 20,
   },
-  label: { 
-    fontSize: 16, 
-    fontWeight: "bold", 
-    color: "#000", 
-    marginTop: 10 
+  label: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#000",
+    marginTop: 10,
   },
   input: {
     backgroundColor: "transparent",
@@ -195,12 +215,13 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: "center",
     marginTop: 20,
+    marginBottom:20,
     width: "80%",
   },
-  saveButtonText: { 
-    color: "#fff", 
-    fontSize: 16, 
-    fontWeight: "bold" 
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });
 
