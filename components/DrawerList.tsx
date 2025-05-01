@@ -1,12 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { 
-  View, 
-  Text, 
-  Image, 
-  Pressable, 
-  StyleSheet, 
-  Alert
-} from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, Alert } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
@@ -26,10 +19,9 @@ const DrawerList: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   useFocusEffect(() => {
     fetchUserProfile();
-  }, );
+  });
 
   const fetchUserProfile = async () => {
-   
     try {
       const response = await axios.get(
         `${BackendUrl}/api/user/getUserByUserId/${userData.userId}`,
@@ -39,12 +31,15 @@ const DrawerList: React.FC = () => {
           },
         }
       );
-      console.log(response?.data.data,'userData');
-      
-     
+      console.log(response?.data.data, "userData");
+
       // setProfilePicture(user.profileImage || null);
       setName(response?.data.data.Name || "");
       setEmail(response?.data.data.Email || "");
+      if (response?.data.data.profilePhoto) {
+        setProfilePicture(`${BackendUrl}/${response.data.data.profilePhoto}`);
+      }
+      console.log(profilePicture, "profile");
     } catch (error: any) {
       Alert.alert(
         "Error",
@@ -52,13 +47,12 @@ const DrawerList: React.FC = () => {
       );
       console.error("Profile fetch error:", error);
     } finally {
-     
     }
   };
 
   const handleLogout = () => {
     console.log(authss);
-    
+
     Alert.alert("Logout", "Are you sure you want to logout?", [
       {
         text: "Cancel",
@@ -67,15 +61,14 @@ const DrawerList: React.FC = () => {
       {
         text: "Logout",
         style: "destructive",
-        onPress: async() => {
-          await AsyncStorage.removeItem("token")
+        onPress: async () => {
+          await AsyncStorage.removeItem("token");
           dispatch(logout()); // Clears token, isAuthenticated, etc.
-          console.log(dispatch(logout()),'hhhhhh');
+          console.log(dispatch(logout()), "hhhhhh");
         },
       },
     ]);
   };
-
 
   return (
     <DrawerContentScrollView contentContainerStyle={styles.container}>
@@ -83,7 +76,11 @@ const DrawerList: React.FC = () => {
       <View style={styles.profileContainer}>
         <View style={styles.imageWrapper}>
           <Image
-            source={require("@/assets/images/profile.png")} 
+            source={
+              profilePicture
+                ? { uri: profilePicture }
+                : require("@/assets/images/profile.png")
+            }
             style={styles.profileImage}
           />
         </View>
@@ -93,12 +90,41 @@ const DrawerList: React.FC = () => {
 
       {/* Drawer Items */}
       <View style={styles.menuContainer}>
-        <MenuItem label="Dashboard" icon="grid" onPress={() => router.push("/(drawer)/(tabs)/(dashboardStack)")} />
-        <MenuItem label="Notification" icon="bell" onPress={() => router.push("/(drawer)/(tabs)/(notificationStack)/notification")} />
-        <MenuItem label="Activity" icon="bar-chart" onPress={() => router.push("/(drawer)/(tabs)/(activityStack)/activityScreen")} />
-        <MenuItem label="Profile" icon="user" onPress={() => router.push("/(drawer)/(tabs)/(profilestack)/profile")} />
-        <MenuItem label="Map" icon="map-pin" onPress={() => router.push("/nearbyhospital")} />
-        <MenuItem label="Logout" icon="log-out" onPress={() => handleLogout()} isLogout />
+        <MenuItem
+          label="Dashboard"
+          icon="grid"
+          onPress={() => router.push("/(drawer)/(tabs)/(dashboardStack)")}
+        />
+        <MenuItem
+          label="Notification"
+          icon="bell"
+          onPress={() =>
+            router.push("/(drawer)/(tabs)/(notificationStack)/notification")
+          }
+        />
+        <MenuItem
+          label="Activity"
+          icon="bar-chart"
+          onPress={() =>
+            router.push("/(drawer)/(tabs)/(activityStack)/activityScreen")
+          }
+        />
+        <MenuItem
+          label="Profile"
+          icon="user"
+          onPress={() => router.push("/(drawer)/(tabs)/(profilestack)/profile")}
+        />
+        <MenuItem
+          label="Map"
+          icon="map-pin"
+          onPress={() => router.push("/nearbyhospital")}
+        />
+        <MenuItem
+          label="Logout"
+          icon="log-out"
+          onPress={() => handleLogout()}
+          isLogout
+        />
       </View>
     </DrawerContentScrollView>
   );
@@ -112,18 +138,27 @@ type MenuItemProps = {
   isLogout?: boolean;
 };
 
-const MenuItem: React.FC<MenuItemProps> = ({ label, icon, onPress, isLogout = false }) => {
+const MenuItem: React.FC<MenuItemProps> = ({
+  label,
+  icon,
+  onPress,
+  isLogout = false,
+}) => {
   return (
-    <Pressable 
+    <Pressable
       style={({ pressed }) => [
-        styles.menuItem, 
+        styles.menuItem,
         isLogout && styles.logoutButton,
-        pressed && styles.pressed
-      ]} 
+        pressed && styles.pressed,
+      ]}
       onPress={onPress}
     >
       <View style={styles.menuItemContent}>
-        <Feather name={icon as any} size={22} style={[styles.menuIcon, isLogout && styles.logoutIcon]} />
+        <Feather
+          name={icon as any}
+          size={22}
+          style={[styles.menuIcon, isLogout && styles.logoutIcon]}
+        />
         <Text style={[styles.menuText, isLogout && styles.logoutText]}>
           {label}
         </Text>

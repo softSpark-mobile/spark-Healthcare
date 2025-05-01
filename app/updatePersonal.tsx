@@ -14,12 +14,10 @@ import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../components/Redux/store";
 import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { GetCountries, GetState } from "react-country-state-city";
 import Loader from "@/components/Loader";
 import { FontAwesome } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { jwtDecode } from "jwt-decode";
 import { BackendUrl } from "@/constants/backendUrl";
 import PhoneInput from "react-native-phone-number-input";
 import * as ImagePicker from "expo-image-picker";
@@ -176,6 +174,8 @@ export default function OnboardingOne(): JSX.Element {
       );
       if (foundCountry) {
         setCountryid(foundCountry.id);
+        console.log(foundCountry.id,"country id");
+        
         setCountry(foundCountry.name);
         handleCountryChange(foundCountry.id);
       }

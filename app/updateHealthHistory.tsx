@@ -93,7 +93,7 @@ const DocumentUploader: React.FC<DocumentUploadProps> = ({
           <Text style={styles.uploadedFileName}>
             {existingFileUrl.split(/[\\/]/).pop()}
           </Text>
-          {existingFileUrl.match(/\.(jpeg|jpg|gif|png)$/) ? (
+          {/* {existingFileUrl.match(/\.(jpeg|jpg|gif|png)$/) ? (
             <Image
               source={{
                 uri: `${BackendUrl}/${existingFileUrl.replace(/\\/g, "/")}`,
@@ -102,7 +102,7 @@ const DocumentUploader: React.FC<DocumentUploadProps> = ({
             />
           ) : (
             <Text style={styles.fileTypeText}>📄 File</Text>
-          )}
+          )} */}
           <Pressable onPress={handleRemoveExisting} style={styles.removeButton}>
             <Text style={styles.removeButtonText}>Remove</Text>
           </Pressable>

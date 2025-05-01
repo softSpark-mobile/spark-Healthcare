@@ -48,6 +48,7 @@ export default function UpdateHealthData() {
         );
         
         const healthData = response.data.data;
+        console.log(healthData,'healthdata');
         
         // Populate form fields with fetched data
         setHeight(healthData.Height || "");
@@ -275,7 +276,7 @@ export default function UpdateHealthData() {
         <View style={styles.buttonContainer}>
           {/* Next Button with Text */}
           <Pressable style={styles.nextButton} onPress={handleSubmit}>
-            <Text style={styles.nextButtonText}>Next</Text>
+            <Text style={styles.nextButtonText}>Submit</Text>
           </Pressable>
         </View>
       </View>
